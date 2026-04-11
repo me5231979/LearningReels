@@ -5,7 +5,7 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { prisma } from "@/lib/db";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "placeholder" });
 
 // cwd() may be the parent dir when running `next dev learning-pall`
 const GENERATED_DIR = path.join(process.cwd(), "learning-pall", "public", "generated");
