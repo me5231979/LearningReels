@@ -2,8 +2,21 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { neon } from "@neondatabase/serverless";
 
-const DATABASE_URL = process.env.DATABASE_URL || "postgresql://neondb_owner:npg_mjEH7AFb2XCo@ep-mute-cake-amsgy8nu-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require";
+let _prisma: PrismaClient | null = null;
 
-const sql = neon(DATABASE_URL);
-const adapter = new PrismaNeon(sql);
-export const prisma = new PrismaClient({ adapter });
+export function getPrisma(): PrismaClient {
+  if (!_prisma) {
+    const url = process.env.DATABASE_URL;
+    if (!url) throw new Error("DATABASE_URL environment variable is not set");
+    const sql = neon(url);
+    const adapter = new PrismaNeon(sql);
+    _prisma = new PrismaClient({ adapter });
+  }
+  return _prisma;
+}
+
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    return (getPrisma() as any)[prop];
+  }
+});
