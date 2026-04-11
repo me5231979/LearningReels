@@ -1,0 +1,24 @@
+{
+  "name": "Learning Reels | Vanderbilt University",
+  "short_name": "Learning Reels",
+  "description": "AI-powered professional development micro-learning",
+  "start_url": "/reels",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#1C1C1C",
+  "background_color": "#1C1C1C",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,343 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+// ─── Auth & Identity ───────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("learner") // learner | admin | super_admin
+  status       String   @default("active") // active | pending_approval | denied
+  jobTitle     String?
+  department   String?
+  preferences  String?  // JSON: { topics: string[], interests: string[] }
+  points       Int      @default(0)
+  streak       Int      @default(0)
+  onboardedAt  DateTime?
+  lastActiveAt DateTime?
+  deletedAt    DateTime? // soft delete
+  createdAt    DateTime @default(now())
+
+  progress         UserProgress[]
+  bloomLevels      UserBloomLevel[]
+  spacedReviews    SpacedReview[]
+  conversations    Conversation[]
+  pushSubscriptions PushSubscription[]
+  reactions        UserReaction[]
+  contentReports   ContentReport[]
+  generatedReels   LearningReel[]   @relation("ReelCreatedBy")
+  adminActions     AdminAction[]
+  passwordResetTokens PasswordResetToken[]
+  coachConversations CoachConversation[]
+}
+
+// ─── Password Reset ────────────────────────────────────────
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique // sha256 of the token sent in email
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Content Domain ────────────────────────────────────────
+
+model Topic {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  label       String
+  description String
+  category    String   // e.g. "leadership", "technical", "operations"
+  icon        String?  // emoji or icon name for display
+  isActive    Boolean  @default(true)
+  isCustom    Boolean  @default(false) // true for user-generated learning paths
+  userId      String?  // owning user for custom topics
+  createdAt   DateTime @default(now())
+
+  reels       LearningReel[]
+  bloomLevels UserBloomLevel[]
+}
+
+model LearningReel {
+  id               String   @id @default(cuid())
+  topicId          String
+  title            String
+  summary          String
+  bloomLevel       String   // remember | understand | apply | analyze | evaluate | create
+  estimatedSeconds Int
+  contentJson      String   // Full structured JSON from Claude
+  sourceUrl        String?  // Link to original content/research
+  sourceCredit     String?  // e.g. "Harvard Business Review" or "Adam Grant, Think Again"
+  coreCompetency   String?  // Vanderbilt core competency alignment
+  coachPersona     String?  // System prompt for the reel's in-app Coach chatbot
+  targetDepartments String? // JSON array of department names; null/empty = ALL STAFF
+  status           String   @default("published") // draft | published | archived
+  isFeatured       Boolean  @default(false) // admin-curated highlight
+  createdById      String?  // admin who generated it (null for seeded reels)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  topic    Topic         @relation(fields: [topicId], references: [id])
+  cards    ReelCard[]
+  progress UserProgress[]
+  reviews  SpacedReview[]
+  reactions UserReaction[]
+  reports  ContentReport[]
+  source   ReelSource?
+  coachConversations CoachConversation[]
+  createdBy User?        @relation("ReelCreatedBy", fields: [createdById], references: [id])
+}
+
+// ─── Reel Coach Conversations ──────────────────────────────
+
+model CoachConversation {
+  id         String   @id @default(cuid())
+  userId     String
+  reelId     String
+  messages   String   @default("[]") // JSON: [{ role: "user"|"assistant", content, ts }]
+  turnsUsed  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel LearningReel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, reelId])
+  @@index([userId])
+}
+
+model ReelCard {
+  id                String  @id @default(cuid())
+  reelId            String
+  order             Int
+  cardType          String  // hook | narration | interaction | feedback
+  title             String
+  script            String  // Text for TTS narration
+  visualDescription String  // Prompt for image generation
+  imageUrl          String? // Generated image URL (async populated)
+  animationCue      String? // Lottie template name or GSAP directive
+  quizJson          String? // JSON: { question, choices[], correctIndex, explanation }
+  durationMs        Int
+
+  reel LearningReel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+}
+
+// ─── User Reactions ────────────────────────────────────────
+
+model UserReaction {
+  id        String   @id @default(cuid())
+  userId    String
+  reelId    String
+  thumbs    String?  // "up" | "down" | null
+  favorited Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel LearningReel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, reelId])
+}
+
+// ─── Learner Progress ──────────────────────────────────────
+
+model UserProgress {
+  id                 String    @id @default(cuid())
+  userId             String
+  reelId             String
+  status             String    @default("not_started") // not_started | in_progress | completed | failed
+  bloomLevelAchieved String?
+  score              Int?      // 0-100
+  attemptsCount      Int       @default(0)
+  answers            String?   // JSON: card answers for analytics
+  completedAt        DateTime?
+  createdAt          DateTime  @default(now())
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel LearningReel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, reelId])
+}
+
+model UserBloomLevel {
+  id           String   @id @default(cuid())
+  userId       String
+  topicId      String
+  currentLevel String   @default("remember")
+  completions  Int      @default(0)
+  avgScore     Float    @default(0)
+  updatedAt    DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId])
+}
+
+// ─── Spaced Repetition ─────────────────────────────────────
+
+model SpacedReview {
+  id              String    @id @default(cuid())
+  userId          String
+  reelId          String
+  nextReviewAt    DateTime
+  intervalDays    Int       @default(1)
+  repetitionCount Int       @default(0)
+  easeFactor      Float     @default(2.5)
+  lastReviewedAt  DateTime?
+  createdAt       DateTime  @default(now())
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel LearningReel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@index([userId, nextReviewAt])
+}
+
+// ─── Onboarding Conversations ──────────────────────────────
+
+model Conversation {
+  id        String   @id @default(cuid())
+  userId    String
+  messages  String   // JSON: [{ role, content, timestamp }]
+  context   String?  // JSON: { topics, bloomLevel, confidence }
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Push Notifications ────────────────────────────────────
+
+model PushSubscription {
+  id       String   @id @default(cuid())
+  userId   String
+  endpoint String
+  p256dh   String
+  auth     String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+}
+
+// ─── Content Reports (admin notifications) ─────────────────
+
+model ContentReport {
+  id        String   @id @default(cuid())
+  reelId    String
+  userId    String
+  reason    String   // "policy" | "inaccurate" | "inappropriate" | "off_topic" | "other"
+  details   String?  // optional learner-supplied note
+  status    String   @default("open") // open | reviewed | dismissed | actioned
+  createdAt DateTime @default(now())
+  reviewedAt DateTime?
+  resolution       String?   // super admin's written response back to the flagger
+  resolvedAt       DateTime? // timestamp the response was posted
+  resolvedById     String?   // admin user id who posted the response
+  resolutionReadAt DateTime? // when the flagger first viewed the response
+
+  reel LearningReel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
+
+// ─── Reel Source Archive ───────────────────────────────────
+
+model ReelSource {
+  id              String   @id @default(cuid())
+  reelId          String   @unique
+  sourceType      String   // "upload" | "url" | "text"
+  originalName    String?  // original filename for uploads
+  originalUrl     String?  // for URL ingest
+  originalPath    String?  // archived original (uploads)
+  brandedPdfPath  String   // branded PDF served to learners
+  snapshotPdfPath String?  // PDF snapshot of live URL (URL ingest only)
+  extractedText   String   // text fed to Claude
+  createdAt       DateTime @default(now())
+
+  reel LearningReel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+}
+
+// ─── Admin Audit Log ───────────────────────────────────────
+
+model AdminAction {
+  id         String   @id @default(cuid())
+  actorId    String   // admin user id
+  action     String   // e.g. "user.delete", "reel.edit", "admin.assign"
+  targetType String   // "user" | "reel" | "report"
+  targetId   String
+  metadata   String?  // JSON snapshot of relevant context
+  createdAt  DateTime @default(now())
+
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId])
+}
+
+// ─── Learner Comms (admin-broadcast popups) ────────────────
+
+model Comm {
+  id          String   @id @default(cuid())
+  heading     String
+  details     String
+  ctaText     String?
+  ctaUrl      String?
+  active      Boolean  @default(true)
+  targetDepartments String? // JSON array of department names; null/empty = ALL STAFF
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  states CommUserState[]
+}
+
+model CommUserState {
+  id              String   @id @default(cuid())
+  commId          String
+  userId          String
+  viewCount       Int      @default(0)
+  lastSessionIat  Int?     // JWT iat of the session that last incremented viewCount
+  dismissedCount  Int      @default(0)
+  ctaClickedCount Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  comm Comm @relation(fields: [commId], references: [id], onDelete: Cascade)
+
+  @@unique([commId, userId])
+  @@index([userId])
+}
+
+// ─── Document Context (existing) ───────────────────────────
+
+model Document {
+  id            String   @id @default(cuid())
+  filename      String
+  filepath      String
+  mimeType      String
+  extractedText String
+  fileSize      Int
+  uploadedAt    DateTime @default(now())
+  tags          Tag[]
+}
+
+model Tag {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  documents Document[]
+}

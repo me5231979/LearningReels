@@ -1,0 +1,485 @@
+
+━━━ Bulk Reel Generation (Sourced) ━━━
+Topics: 1
+Target: 80 reels per topic
+
+
+▸ Vanderbilt Know-How (vanderbilt-know-how)
+  Existing: 20, Needed: 60
+  [remember] Reel 21/80... ✓
+  [remember] Reel 22/80... ✓
+  [remember] Reel 23/80... ✓
+  [remember] Reel 24/80...  ✗ Error generating "Vanderbilt Know-How" reel #24: RateLimitError: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."},"request_id":"req_011CZuTFGL9k4CnqL2A3DddA"}
+    at APIError.generate (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/core/error.ts:87:14)
+    at Anthropic.makeStatusError (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:515:28)
+    at Anthropic.makeRequest (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:751:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async generateOneReel (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:340:22)
+    at async main (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:455:20) {
+  status: 429,
+  headers: Headers {
+    date: 'Fri, 10 Apr 2026 04:23:44 GMT',
+    'content-type': 'application/json',
+    'transfer-encoding': 'chunked',
+    connection: 'keep-alive',
+    'x-should-retry': 'true',
+    'anthropic-ratelimit-output-tokens-limit': '8000',
+    'anthropic-ratelimit-output-tokens-remaining': '0',
+    'anthropic-ratelimit-output-tokens-reset': '2026-04-10T04:24:56Z',
+    'anthropic-ratelimit-requests-limit': '50',
+    'anthropic-ratelimit-requests-remaining': '49',
+    'anthropic-ratelimit-requests-reset': '2026-04-10T04:23:45Z',
+    'retry-after': '13',
+    'request-id': 'req_011CZuTFGL9k4CnqL2A3DddA',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'anthropic-organization-id': '7342909c-e80c-4b16-838d-7d2c67c5e5a8',
+    server: 'cloudflare',
+    'x-envoy-upstream-service-time': '42',
+    'content-encoding': 'gzip',
+    vary: 'Accept-Encoding',
+    'server-timing': 'x-originResponse;dur=44',
+    'cf-cache-status': 'DYNAMIC',
+    'set-cookie': '_cfuvid=x2Cs.puj2Dq3pxGMD4S3Js2TYMqf_PI06MCYokBgAas-1775795024.1502633-1.0.1.1-aFbW72a8vHchz8vGinZ2c9ar.NntwAAP6asQDwtb8so; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.anthropic.com',
+    'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+    'x-robots-tag': 'none',
+    'cf-ray': '9e9efa54eb40931e-PHL'
+  },
+  requestID: 'req_011CZuTFGL9k4CnqL2A3DddA',
+  error: {
+    type: 'error',
+    error: {
+      type: 'rate_limit_error',
+      message: "This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."
+    },
+    request_id: 'req_011CZuTFGL9k4CnqL2A3DddA'
+  }
+}
+ ✗ (retrying)
+  Retry ✓
+  [remember] Reel 25/80... ✓
+  [remember] Reel 26/80... ✓
+  [remember] Reel 27/80... ✓
+  [remember] Reel 28/80... ✓
+  [remember] Reel 29/80... ✓
+  [remember] Reel 30/80... ✓
+  [remember] Reel 31/80... ✓
+  [remember] Reel 32/80... ✓
+  [remember] Reel 33/80... ✓
+  [remember] Reel 34/80... ✓
+  [remember] Reel 35/80... ✓
+  [remember] Reel 36/80...  ✗ Error generating "Vanderbilt Know-How" reel #36: RateLimitError: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."},"request_id":"req_011CZuTx8ZELCxes7H8jiwDv"}
+    at APIError.generate (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/core/error.ts:87:14)
+    at Anthropic.makeStatusError (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:515:28)
+    at Anthropic.makeRequest (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:751:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async generateOneReel (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:340:22)
+    at async main (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:455:20) {
+  status: 429,
+  headers: Headers {
+    date: 'Fri, 10 Apr 2026 04:32:58 GMT',
+    'content-type': 'application/json',
+    'transfer-encoding': 'chunked',
+    connection: 'keep-alive',
+    'x-should-retry': 'true',
+    'anthropic-ratelimit-output-tokens-limit': '8000',
+    'anthropic-ratelimit-output-tokens-remaining': '0',
+    'anthropic-ratelimit-output-tokens-reset': '2026-04-10T04:34:03Z',
+    'anthropic-ratelimit-requests-limit': '50',
+    'anthropic-ratelimit-requests-remaining': '49',
+    'anthropic-ratelimit-requests-reset': '2026-04-10T04:32:59Z',
+    'retry-after': '5',
+    'request-id': 'req_011CZuTx8ZELCxes7H8jiwDv',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'anthropic-organization-id': '7342909c-e80c-4b16-838d-7d2c67c5e5a8',
+    server: 'cloudflare',
+    'x-envoy-upstream-service-time': '30',
+    'content-encoding': 'gzip',
+    vary: 'Accept-Encoding',
+    'server-timing': 'x-originResponse;dur=33',
+    'cf-cache-status': 'DYNAMIC',
+    'set-cookie': '_cfuvid=cvfUbTFqTb7w8zDvR4Iy_DShx1S5nvHjq2VnqVpLTeU-1775795578.5335786-1.0.1.1-HH7LC2KGm_OlThd.EP4WgGyPAMaATNJoe4omYMsqzuw; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.anthropic.com',
+    'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+    'x-robots-tag': 'none',
+    'cf-ray': '9e9f07dddf056459-PHL'
+  },
+  requestID: 'req_011CZuTx8ZELCxes7H8jiwDv',
+  error: {
+    type: 'error',
+    error: {
+      type: 'rate_limit_error',
+      message: "This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."
+    },
+    request_id: 'req_011CZuTx8ZELCxes7H8jiwDv'
+  }
+}
+ ✗ (retrying)
+  Retry ✓
+  [understand] Reel 37/80... ✓
+  [understand] Reel 38/80... ✓
+  [understand] Reel 39/80... ✓
+  [understand] Reel 40/80... ✓
+  [understand] Reel 41/80... ✓
+  [understand] Reel 42/80... ✓
+  [understand] Reel 43/80... ✓
+  [understand] Reel 44/80... ✓
+  [understand] Reel 45/80... ✓
+  [understand] Reel 46/80... ✓
+  [understand] Reel 47/80... ✓
+  [understand] Reel 48/80... ✓
+  [understand] Reel 49/80... ✓
+  [understand] Reel 50/80... ✓
+  [understand] Reel 51/80... ✓
+  [understand] Reel 52/80... ✓
+  [apply] Reel 53/80... ✓
+  [apply] Reel 54/80... ✓
+  [apply] Reel 55/80... ✓
+  [apply] Reel 56/80... ✓
+  [apply] Reel 57/80... ✓
+  [apply] Reel 58/80... ✓
+  [apply] Reel 59/80... ✓
+  [apply] Reel 60/80... ✓
+  [apply] Reel 61/80...  ✗ Error generating "Vanderbilt Know-How" reel #61: RateLimitError: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."},"request_id":"req_011CZuVR7ik79n4qYegTteh5"}
+    at APIError.generate (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/core/error.ts:87:14)
+    at Anthropic.makeStatusError (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:515:28)
+    at Anthropic.makeRequest (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:751:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async generateOneReel (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:340:22)
+    at async main (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:455:20) {
+  status: 429,
+  headers: Headers {
+    date: 'Fri, 10 Apr 2026 04:52:11 GMT',
+    'content-type': 'application/json',
+    'transfer-encoding': 'chunked',
+    connection: 'keep-alive',
+    'x-should-retry': 'true',
+    'anthropic-ratelimit-output-tokens-limit': '8000',
+    'anthropic-ratelimit-output-tokens-remaining': '0',
+    'anthropic-ratelimit-output-tokens-reset': '2026-04-10T04:53:14Z',
+    'anthropic-ratelimit-requests-limit': '50',
+    'anthropic-ratelimit-requests-remaining': '49',
+    'anthropic-ratelimit-requests-reset': '2026-04-10T04:52:12Z',
+    'retry-after': '4',
+    'request-id': 'req_011CZuVR7ik79n4qYegTteh5',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'anthropic-organization-id': '7342909c-e80c-4b16-838d-7d2c67c5e5a8',
+    server: 'cloudflare',
+    'x-envoy-upstream-service-time': '40',
+    'content-encoding': 'gzip',
+    vary: 'Accept-Encoding',
+    'server-timing': 'x-originResponse;dur=75',
+    'cf-cache-status': 'DYNAMIC',
+    'set-cookie': '_cfuvid=uSeEF1Jk.caHOtWwigezNTnupH6stBvqXC0TDpNyRTA-1775796731.404927-1.0.1.1-xEbml1AW8lvxdMWVSROS.xrLif_7b7GjGUaSfQ5_ChI; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.anthropic.com',
+    'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+    'x-robots-tag': 'none',
+    'cf-ray': '9e9f24034f5532d2-PHL'
+  },
+  requestID: 'req_011CZuVR7ik79n4qYegTteh5',
+  error: {
+    type: 'error',
+    error: {
+      type: 'rate_limit_error',
+      message: "This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."
+    },
+    request_id: 'req_011CZuVR7ik79n4qYegTteh5'
+  }
+}
+ ✗ (retrying)
+  Retry ✓
+  [apply] Reel 62/80...  ✗ Error generating "Vanderbilt Know-How" reel #62: RateLimitError: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."},"request_id":"req_011CZuVUEGyTfEGJ5vZsHHTh"}
+    at APIError.generate (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/core/error.ts:87:14)
+    at Anthropic.makeStatusError (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:515:28)
+    at Anthropic.makeRequest (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:751:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async generateOneReel (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:340:22)
+    at async main (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:455:20) {
+  status: 429,
+  headers: Headers {
+    date: 'Fri, 10 Apr 2026 04:52:53 GMT',
+    'content-type': 'application/json',
+    'transfer-encoding': 'chunked',
+    connection: 'keep-alive',
+    'x-should-retry': 'true',
+    'anthropic-ratelimit-output-tokens-limit': '8000',
+    'anthropic-ratelimit-output-tokens-remaining': '0',
+    'anthropic-ratelimit-output-tokens-reset': '2026-04-10T04:53:54Z',
+    'anthropic-ratelimit-requests-limit': '50',
+    'anthropic-ratelimit-requests-remaining': '49',
+    'anthropic-ratelimit-requests-reset': '2026-04-10T04:52:54Z',
+    'retry-after': '1',
+    'request-id': 'req_011CZuVUEGyTfEGJ5vZsHHTh',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'anthropic-organization-id': '7342909c-e80c-4b16-838d-7d2c67c5e5a8',
+    server: 'cloudflare',
+    'x-envoy-upstream-service-time': '30',
+    'content-encoding': 'gzip',
+    vary: 'Accept-Encoding',
+    'server-timing': 'x-originResponse;dur=32',
+    'cf-cache-status': 'DYNAMIC',
+    'set-cookie': '_cfuvid=qx8ZGsl3NAucFGw5lkvPQanDoL1F3Gd9hR8ot3PI5NM-1775796773.671386-1.0.1.1-xSxB_DZ1cH8zLBLYtfb9ByenLntnOiqlVgYkNc47f5k; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.anthropic.com',
+    'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+    'x-robots-tag': 'none',
+    'cf-ray': '9e9f250b7e80aaa9-PHL'
+  },
+  requestID: 'req_011CZuVUEGyTfEGJ5vZsHHTh',
+  error: {
+    type: 'error',
+    error: {
+      type: 'rate_limit_error',
+      message: "This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."
+    },
+    request_id: 'req_011CZuVUEGyTfEGJ5vZsHHTh'
+  }
+}
+ ✗ (retrying)
+  Retry ✓
+  [apply] Reel 63/80... ✓
+  [apply] Reel 64/80... ✓
+  [apply] Reel 65/80...  ✗ Error generating "Vanderbilt Know-How" reel #65: RateLimitError: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."},"request_id":"req_011CZuVcYU5d54Gmxm7z9auY"}
+    at APIError.generate (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/core/error.ts:87:14)
+    at Anthropic.makeStatusError (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:515:28)
+    at Anthropic.makeRequest (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:751:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async generateOneReel (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:340:22)
+    at async main (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:455:20) {
+  status: 429,
+  headers: Headers {
+    date: 'Fri, 10 Apr 2026 04:54:46 GMT',
+    'content-type': 'application/json',
+    'transfer-encoding': 'chunked',
+    connection: 'keep-alive',
+    'x-should-retry': 'true',
+    'anthropic-ratelimit-output-tokens-limit': '8000',
+    'anthropic-ratelimit-output-tokens-remaining': '0',
+    'anthropic-ratelimit-output-tokens-reset': '2026-04-10T04:55:49Z',
+    'anthropic-ratelimit-requests-limit': '50',
+    'anthropic-ratelimit-requests-remaining': '49',
+    'anthropic-ratelimit-requests-reset': '2026-04-10T04:54:47Z',
+    'retry-after': '4',
+    'request-id': 'req_011CZuVcYU5d54Gmxm7z9auY',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'anthropic-organization-id': '7342909c-e80c-4b16-838d-7d2c67c5e5a8',
+    server: 'cloudflare',
+    'x-envoy-upstream-service-time': '31',
+    'content-encoding': 'gzip',
+    vary: 'Accept-Encoding',
+    'server-timing': 'x-originResponse;dur=34',
+    'cf-cache-status': 'DYNAMIC',
+    'set-cookie': '_cfuvid=EB41ZA8Ww0rpgJ7SOuqpyIXgurWAEWfha10GJV6rbeE-1775796886.4518783-1.0.1.1-o799mU7eqyPe6ZgVKnFHlLiTlEcSFNbRXwKSxU5tCCA; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.anthropic.com',
+    'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+    'x-robots-tag': 'none',
+    'cf-ray': '9e9f27cc5e7e6459-PHL'
+  },
+  requestID: 'req_011CZuVcYU5d54Gmxm7z9auY',
+  error: {
+    type: 'error',
+    error: {
+      type: 'rate_limit_error',
+      message: "This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."
+    },
+    request_id: 'req_011CZuVcYU5d54Gmxm7z9auY'
+  }
+}
+ ✗ (retrying)
+  Retry ✓
+  [apply] Reel 66/80... ✓
+  [apply] Reel 67/80... ✓
+  [apply] Reel 68/80...  ✗ Error generating "Vanderbilt Know-How" reel #68: RateLimitError: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."},"request_id":"req_011CZuVkNaEi5uypDoEiDqu6"}
+    at APIError.generate (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/core/error.ts:87:14)
+    at Anthropic.makeStatusError (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:515:28)
+    at Anthropic.makeRequest (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:751:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async generateOneReel (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:340:22)
+    at async main (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:455:20) {
+  status: 429,
+  headers: Headers {
+    date: 'Fri, 10 Apr 2026 04:56:32 GMT',
+    'content-type': 'application/json',
+    'transfer-encoding': 'chunked',
+    connection: 'keep-alive',
+    'x-should-retry': 'true',
+    'anthropic-ratelimit-output-tokens-limit': '8000',
+    'anthropic-ratelimit-output-tokens-remaining': '0',
+    'anthropic-ratelimit-output-tokens-reset': '2026-04-10T04:57:43Z',
+    'anthropic-ratelimit-requests-limit': '50',
+    'anthropic-ratelimit-requests-remaining': '47',
+    'anthropic-ratelimit-requests-reset': '2026-04-10T04:56:35Z',
+    'retry-after': '12',
+    'request-id': 'req_011CZuVkNaEi5uypDoEiDqu6',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'anthropic-organization-id': '7342909c-e80c-4b16-838d-7d2c67c5e5a8',
+    server: 'cloudflare',
+    'x-envoy-upstream-service-time': '34',
+    'content-encoding': 'gzip',
+    vary: 'Accept-Encoding',
+    'server-timing': 'x-originResponse;dur=36',
+    'cf-cache-status': 'DYNAMIC',
+    'set-cookie': '_cfuvid=rD3QooltWjt1LzOV27MV4xTcBPFv7k6gysPbjB5y3BM-1775796992.6638315-1.0.1.1-XL3qpcyOwEt9ONUfTw.bKfVumBTDGSh7a4Xi5B5OdiQ; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.anthropic.com',
+    'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+    'x-robots-tag': 'none',
+    'cf-ray': '9e9f2a642a58a0e2-PHL'
+  },
+  requestID: 'req_011CZuVkNaEi5uypDoEiDqu6',
+  error: {
+    type: 'error',
+    error: {
+      type: 'rate_limit_error',
+      message: "This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."
+    },
+    request_id: 'req_011CZuVkNaEi5uypDoEiDqu6'
+  }
+}
+ ✗ (retrying)
+  Retry ✓
+  [analyze] Reel 69/80... ✓
+  [analyze] Reel 70/80... ✓
+  [analyze] Reel 71/80...  ✗ Error generating "Vanderbilt Know-How" reel #71: RateLimitError: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."},"request_id":"req_011CZuVuZpR7EQA1SCwscd1J"}
+    at APIError.generate (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/core/error.ts:87:14)
+    at Anthropic.makeStatusError (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:515:28)
+    at Anthropic.makeRequest (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:751:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async generateOneReel (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:340:22)
+    at async main (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:455:20) {
+  status: 429,
+  headers: Headers {
+    date: 'Fri, 10 Apr 2026 04:58:37 GMT',
+    'content-type': 'application/json',
+    'content-length': '595',
+    connection: 'keep-alive',
+    'x-should-retry': 'true',
+    'anthropic-ratelimit-output-tokens-limit': '8000',
+    'anthropic-ratelimit-output-tokens-remaining': '0',
+    'anthropic-ratelimit-output-tokens-reset': '2026-04-10T04:59:37Z',
+    'anthropic-ratelimit-requests-limit': '50',
+    'anthropic-ratelimit-requests-remaining': '49',
+    'anthropic-ratelimit-requests-reset': '2026-04-10T04:58:38Z',
+    'retry-after': '1',
+    'request-id': 'req_011CZuVuZpR7EQA1SCwscd1J',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'anthropic-organization-id': '7342909c-e80c-4b16-838d-7d2c67c5e5a8',
+    server: 'cloudflare',
+    'x-envoy-upstream-service-time': '86',
+    'server-timing': 'x-originResponse;dur=87',
+    'cf-cache-status': 'DYNAMIC',
+    'set-cookie': '_cfuvid=OWKhtnbrKjOjEA88HAmeoWf2ok3u8HGflgIyJkug9EM-1775797117.3806987-1.0.1.1-cgLB_ZMISHxc7kkXD6acMILts_H3xLGI3qP93W0dwlI; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.anthropic.com',
+    'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+    'x-robots-tag': 'none',
+    'cf-ray': '9e9f2d6f9b85aaa9-PHL'
+  },
+  requestID: 'req_011CZuVuZpR7EQA1SCwscd1J',
+  error: {
+    type: 'error',
+    error: {
+      type: 'rate_limit_error',
+      message: "This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."
+    },
+    request_id: 'req_011CZuVuZpR7EQA1SCwscd1J'
+  }
+}
+ ✗ (retrying)
+  Retry ✓
+  [analyze] Reel 72/80...  ✗ Error generating "Vanderbilt Know-How" reel #72: RateLimitError: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."},"request_id":"req_011CZuVxWGRfPfvZAp6uRnMc"}
+    at APIError.generate (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/core/error.ts:87:14)
+    at Anthropic.makeStatusError (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:515:28)
+    at Anthropic.makeRequest (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:751:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async generateOneReel (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:340:22)
+    at async main (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:455:20) {
+  status: 429,
+  headers: Headers {
+    date: 'Fri, 10 Apr 2026 04:59:17 GMT',
+    'content-type': 'application/json',
+    'transfer-encoding': 'chunked',
+    connection: 'keep-alive',
+    'x-should-retry': 'true',
+    'anthropic-ratelimit-output-tokens-limit': '8000',
+    'anthropic-ratelimit-output-tokens-remaining': '0',
+    'anthropic-ratelimit-output-tokens-reset': '2026-04-10T05:00:17Z',
+    'anthropic-ratelimit-requests-limit': '50',
+    'anthropic-ratelimit-requests-remaining': '48',
+    'anthropic-ratelimit-requests-reset': '2026-04-10T04:59:18Z',
+    'retry-after': '1',
+    'request-id': 'req_011CZuVxWGRfPfvZAp6uRnMc',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'anthropic-organization-id': '7342909c-e80c-4b16-838d-7d2c67c5e5a8',
+    server: 'cloudflare',
+    'x-envoy-upstream-service-time': '42',
+    'content-encoding': 'gzip',
+    vary: 'Accept-Encoding',
+    'server-timing': 'x-originResponse;dur=44',
+    'cf-cache-status': 'DYNAMIC',
+    'set-cookie': '_cfuvid=yx9ly7mVL1afXhujsQf8orsA2_lGIXY_Qe3ADhca91Q-1775797157.255008-1.0.1.1-xMe_bDkzZNlNbB0W9Ht7lxFa038eYN5XFA45c64J5zU; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.anthropic.com',
+    'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+    'x-robots-tag': 'none',
+    'cf-ray': '9e9f2e68da9e2263-PHL'
+  },
+  requestID: 'req_011CZuVxWGRfPfvZAp6uRnMc',
+  error: {
+    type: 'error',
+    error: {
+      type: 'rate_limit_error',
+      message: "This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."
+    },
+    request_id: 'req_011CZuVxWGRfPfvZAp6uRnMc'
+  }
+}
+ ✗ (retrying)
+  Retry ✓
+  [analyze] Reel 73/80... ✓
+  [analyze] Reel 74/80... ✓
+  [analyze] Reel 75/80... ✓
+  [analyze] Reel 76/80... ✓
+  [analyze] Reel 77/80... ✓
+  [analyze] Reel 78/80... ✓
+  [analyze] Reel 79/80...  ✗ Error generating "Vanderbilt Know-How" reel #79: RateLimitError: 429 {"type":"error","error":{"type":"rate_limit_error","message":"This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."},"request_id":"req_011CZuWJULu4BSfXDYV8sAvU"}
+    at APIError.generate (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/core/error.ts:87:14)
+    at Anthropic.makeStatusError (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:515:28)
+    at Anthropic.makeRequest (/Users/estesm4/Desktop/Learning Pall/learning-pall/node_modules/@anthropic-ai/sdk/src/client.ts:751:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async generateOneReel (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:340:22)
+    at async main (/Users/estesm4/Desktop/Learning Pall/learning-pall/scripts/generate-all-reels.ts:455:20) {
+  status: 429,
+  headers: Headers {
+    date: 'Fri, 10 Apr 2026 05:03:48 GMT',
+    'content-type': 'application/json',
+    'transfer-encoding': 'chunked',
+    connection: 'keep-alive',
+    'x-should-retry': 'true',
+    'anthropic-ratelimit-output-tokens-limit': '8000',
+    'anthropic-ratelimit-output-tokens-remaining': '0',
+    'anthropic-ratelimit-output-tokens-reset': '2026-04-10T05:04:48Z',
+    'anthropic-ratelimit-requests-limit': '50',
+    'anthropic-ratelimit-requests-remaining': '48',
+    'anthropic-ratelimit-requests-reset': '2026-04-10T05:03:50Z',
+    'retry-after': '1',
+    'request-id': 'req_011CZuWJULu4BSfXDYV8sAvU',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'anthropic-organization-id': '7342909c-e80c-4b16-838d-7d2c67c5e5a8',
+    server: 'cloudflare',
+    'x-envoy-upstream-service-time': '63',
+    'content-encoding': 'gzip',
+    vary: 'Accept-Encoding',
+    'server-timing': 'x-originResponse;dur=64',
+    'cf-cache-status': 'DYNAMIC',
+    'set-cookie': '_cfuvid=HED75UbXqBBR8hqBQ2r8.LsApwqI3st8txmBmoZcDAY-1775797428.1201568-1.0.1.1-ITvL6rv2VNLiY2JjGsz67mpLt9GwCUzDkiq7HyfiHKQ; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.anthropic.com',
+    'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+    'x-robots-tag': 'none',
+    'cf-ray': '9e9f3505bd452398-PHL'
+  },
+  requestID: 'req_011CZuWJULu4BSfXDYV8sAvU',
+  error: {
+    type: 'error',
+    error: {
+      type: 'rate_limit_error',
+      message: "This request would exceed your organization's rate limit of 8,000 output tokens per minute (org: 7342909c-e80c-4b16-838d-7d2c67c5e5a8, model: claude-sonnet-4-20250514). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://claude.com/contact-sales to discuss your options for a rate limit increase."
+    },
+    request_id: 'req_011CZuWJULu4BSfXDYV8sAvU'
+  }
+}
+ ✗ (retrying)
+  Retry ✓
+  [analyze] Reel 80/80... ✓
+  Generated 60 new reels (total: 80)
+
+━━━ Complete ━━━
+Total new reels: 60
+Total reels in DB: 562

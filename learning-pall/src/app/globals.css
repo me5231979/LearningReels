@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+:root {
+  --vand-gold: #CFAE70;
+  --vand-black: #1C1C1C;
+  --vand-white: #FFFFFF;
+  --vand-cream: #F5F3EF;
+  --vand-sand: #E0D5C0;
+  --vand-light-gray: #E4E4E4;
+  --vand-dark-gray: #777777;
+  --vand-highlight: #ECB748;
+  --vand-oak: #946E24;
+  --vand-sky: #B3C9CD;
+  --vand-sage: #8BA18E;
+}
+
+@theme inline {
+  --color-background: var(--vand-black);
+  --color-foreground: var(--vand-sand);
+
+  --color-vand-gold: #CFAE70;
+  --color-vand-black: #1C1C1C;
+  --color-vand-white: #FFFFFF;
+  --color-vand-cream: #F5F3EF;
+  --color-vand-sand: #E0D5C0;
+  --color-vand-light-gray: #E4E4E4;
+  --color-vand-dark-gray: #777777;
+  --color-vand-highlight: #ECB748;
+  --color-vand-oak: #946E24;
+  --color-vand-sky: #B3C9CD;
+  --color-vand-sage: #8BA18E;
+
+  --font-serif: "Libre Caslon Text", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-condensed: "Antonio", Impact, sans-serif;
+}
+
+body {
+  background: var(--vand-black);
+  color: var(--vand-sand);
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-serif);
+}
+
+/* Vanderbilt gold gradient for accents */
+.vand-gold-gradient {
+  background: linear-gradient(135deg, #FEEEB6 0%, #CFAE70 50%, #B49248 100%);
+}
+
+.vand-gold-text {
+  background: linear-gradient(135deg, #FEEEB6 0%, #CFAE70 50%, #B49248 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Focus styles using gold */
+*:focus-visible {
+  outline: 2px solid var(--vand-gold);
+  outline-offset: 2px;
+}
+
+/* Note: Smooth scroll-behavior removed from <html> because it broke
+   Next.js 16 route transitions (navigation silently failed). If smooth
+   scrolling is needed, apply it to specific elements via Element.scrollTo
+   with { behavior: "smooth" } instead. */
+
+/* Reel feed scroll snap */
+.reel-container {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.reel-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Safe area padding for PWA */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Prevent pull-to-refresh in PWA */
+body {
+  overscroll-behavior-y: contain;
+}

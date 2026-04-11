@@ -1,0 +1,223 @@
+/**
+ * Branded source PDF generator (server-side, react-pdf).
+ *
+ * Renders a Vanderbilt-branded cover page + the source content (extracted text).
+ * Used as the archived "Source PDF" for any reel generated from upload, URL, or text.
+ */
+import { Document, Page, Text, View, StyleSheet, pdf } from "@react-pdf/renderer";
+import React from "react";
+
+export type BrandedPdfInput = {
+  reelTitle: string;
+  topic: string;
+  bloomLevel: string;
+  generatedAt: Date;
+  generatedBy: string;
+  sourceType: "upload" | "url" | "text";
+  sourceLabel: string; // filename, URL, or "Pasted text"
+  body: string; // extracted/scraped text content
+  summary?: string;
+};
+
+const VAND_GOLD = "#B58500";
+const VAND_BLACK = "#1C1C1C";
+const VAND_SAND = "#D8C9A8";
+
+const styles = StyleSheet.create({
+  page: {
+    padding: 56,
+    fontSize: 11,
+    fontFamily: "Helvetica",
+    color: VAND_BLACK,
+    lineHeight: 1.5,
+  },
+  header: {
+    borderBottom: `2pt solid ${VAND_GOLD}`,
+    paddingBottom: 12,
+    marginBottom: 18,
+  },
+  brand: {
+    fontSize: 9,
+    color: VAND_GOLD,
+    letterSpacing: 2,
+    textTransform: "uppercase",
+    marginBottom: 4,
+    fontFamily: "Helvetica-Bold",
+  },
+  brandSub: {
+    fontSize: 8,
+    color: "#666",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  title: {
+    fontSize: 22,
+    fontFamily: "Helvetica-Bold",
+    color: VAND_BLACK,
+    marginBottom: 10,
+    marginTop: 24,
+  },
+  meta: {
+    marginBottom: 24,
+  },
+  metaRow: {
+    flexDirection: "row",
+    marginBottom: 4,
+  },
+  metaLabel: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+    color: "#666",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    width: 90,
+  },
+  metaValue: {
+    fontSize: 10,
+    color: VAND_BLACK,
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    color: VAND_GOLD,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    marginTop: 18,
+    marginBottom: 8,
+    borderBottom: "1pt solid #ddd",
+    paddingBottom: 4,
+  },
+  summary: {
+    fontSize: 10,
+    color: "#444",
+    fontStyle: "italic",
+    marginBottom: 18,
+    lineHeight: 1.6,
+  },
+  bodyText: {
+    fontSize: 10,
+    color: VAND_BLACK,
+    lineHeight: 1.6,
+    textAlign: "left",
+  },
+  footer: {
+    position: "absolute",
+    bottom: 30,
+    left: 56,
+    right: 56,
+    fontSize: 7,
+    color: "#999",
+    textAlign: "center",
+    borderTop: "0.5pt solid #ddd",
+    paddingTop: 6,
+  },
+});
+
+function chunkText(text: string, max = 8000): string[] {
+  // Split into pages by paragraph boundaries to keep page sizes reasonable
+  const paragraphs = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const pages: string[] = [];
+  let current = "";
+  for (const p of paragraphs) {
+    if ((current + "\n\n" + p).length > max) {
+      if (current) pages.push(current);
+      current = p;
+    } else {
+      current = current ? current + "\n\n" + p : p;
+    }
+  }
+  if (current) pages.push(current);
+  return pages.length ? pages : [text];
+}
+
+function BrandedPdf({ data }: { data: BrandedPdfInput }) {
+  const pages = chunkText(data.body);
+  const dateStr = data.generatedAt.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  return (
+    <Document
+      title={`Learning Reel: ${data.reelTitle}`}
+      author="Vanderbilt Learning Reels"
+      creator="Vanderbilt Learning Reels"
+    >
+      {pages.map((pageBody, i) => (
+        <Page key={i} size="LETTER" style={styles.page}>
+          {i === 0 && (
+            <>
+              <View style={styles.header}>
+                <Text style={styles.brand}>Vanderbilt Learning Reels</Text>
+                <Text style={styles.brandSub}>Source Reference Document</Text>
+              </View>
+
+              <Text style={styles.title}>{data.reelTitle}</Text>
+
+              <View style={styles.meta}>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Topic</Text>
+                  <Text style={styles.metaValue}>{data.topic}</Text>
+                </View>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Bloom Level</Text>
+                  <Text style={styles.metaValue}>{data.bloomLevel}</Text>
+                </View>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Source Type</Text>
+                  <Text style={styles.metaValue}>{data.sourceType.toUpperCase()}</Text>
+                </View>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Source</Text>
+                  <Text style={styles.metaValue}>{data.sourceLabel}</Text>
+                </View>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Generated</Text>
+                  <Text style={styles.metaValue}>{dateStr}</Text>
+                </View>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Generated By</Text>
+                  <Text style={styles.metaValue}>{data.generatedBy}</Text>
+                </View>
+              </View>
+
+              {data.summary && (
+                <>
+                  <Text style={styles.sectionTitle}>Reel Summary</Text>
+                  <Text style={styles.summary}>{data.summary}</Text>
+                </>
+              )}
+
+              <Text style={styles.sectionTitle}>Source Content</Text>
+            </>
+          )}
+
+          <Text style={styles.bodyText}>{pageBody}</Text>
+
+          <Text style={styles.footer}>
+            Vanderbilt Learning Reels · Source Reference · Page {i + 1} of {pages.length}
+          </Text>
+        </Page>
+      ))}
+    </Document>
+  );
+}
+
+export async function renderBrandedPdf(data: BrandedPdfInput): Promise<Buffer> {
+  const instance = pdf(<BrandedPdf data={data} />);
+  const buf = await instance.toBuffer();
+  // toBuffer returns a NodeJS Readable in some versions; coerce to Buffer
+  if (Buffer.isBuffer(buf)) return buf;
+  return await streamToBuffer(buf as unknown as NodeJS.ReadableStream);
+}
+
+async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    stream.on("data", (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+    stream.on("error", reject);
+  });
+}
