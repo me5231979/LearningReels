@@ -13,31 +13,42 @@
  */
 
 import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import Anthropic from "@anthropic-ai/sdk";
 import path from "path";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "fs";
 
 // ── DB setup ───────────────────────────────────────────────
-const dbPath = path.join(__dirname, "..", "data", "learning-pall.db");
-const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
-const prisma = new PrismaClient({ adapter });
+function getDbUrl(): string {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  const envPath = path.join(__dirname, "..", ".env.local");
+  for (const line of readFileSync(envPath, "utf-8").split("\n")) {
+    const m = line.match(/^DATABASE_URL=['"]?([^'"]+?)['"]?$/);
+    if (m) return m[1];
+  }
+  throw new Error("DATABASE_URL not found");
+}
+const neonAdapter = new PrismaNeon({ connectionString: getDbUrl() });
+const prisma = new PrismaClient({ adapter: neonAdapter });
 
 // ── Anthropic setup ────────────────────────────────────────
 function getApiKey(): string {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
-  try {
-    const envPath = path.join(__dirname, "..", ".env.local");
-    const content = readFileSync(envPath, "utf-8");
-    for (const line of content.split("\n")) {
-      const match = line.match(/^ANTHROPIC_API_KEY=(.+)$/);
-      if (match) return match[1].trim();
-    }
-  } catch {}
+  for (const file of [".env.local", ".env"]) {
+    try {
+      const envPath = path.join(__dirname, "..", file);
+      const content = readFileSync(envPath, "utf-8");
+      for (const line of content.split("\n")) {
+        const match = line.match(/^ANTHROPIC_API_KEY=['"]?([^'"\s]+?)['"]?\s*$/);
+        if (match) return match[1];
+      }
+    } catch {}
+  }
   throw new Error("ANTHROPIC_API_KEY not found");
 }
 
-const anthropic = new Anthropic({ apiKey: getApiKey() });
+// 5 minute timeout per request (12 of 13 previous failures were timeouts)
+const anthropic = new Anthropic({ apiKey: getApiKey(), timeout: 5 * 60 * 1000, maxRetries: 2 });
 const MODEL = "claude-sonnet-4-20250514";
 
 // ── Progress tracking ──────────────────────────────────────
