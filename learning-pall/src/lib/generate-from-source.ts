@@ -13,8 +13,6 @@ import {
 } from "./prompts/reel-generation";
 import type { BloomsLevel } from "@/types/course";
 import { renderBrandedPdf } from "./pdf/branded";
-import Database from "better-sqlite3";
-import { existsSync } from "fs";
 import { serializeTargetDepartments } from "./departments";
 import { serializeCoachPersona, type GeneratedCoachPersona } from "./coach";
 
@@ -22,17 +20,6 @@ const UPLOADS_ROOT = path.join(process.cwd(), "public", "uploads");
 const SOURCES_DIR = path.join(UPLOADS_ROOT, "sources");
 const ORIGINALS_DIR = path.join(UPLOADS_ROOT, "originals");
 const SNAPSHOTS_DIR = path.join(UPLOADS_ROOT, "snapshots");
-
-function getRawDb() {
-  const candidates = [
-    path.join(process.cwd(), "data", "learning-pall.db"),
-    path.join(process.cwd(), "learning-pall", "data", "learning-pall.db"),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) return new Database(p);
-  }
-  throw new Error("learning-pall.db not found");
-}
 
 export type GenerateFromSourceInput = {
   topicId: string;
@@ -64,9 +51,8 @@ export async function generateReelFromSource(
   const topic = await prisma.topic.findUnique({ where: { id: input.topicId } });
   if (!topic) throw new Error("Topic not found");
 
-  await fs.mkdir(SOURCES_DIR, { recursive: true });
-  await fs.mkdir(ORIGINALS_DIR, { recursive: true });
-  await fs.mkdir(SNAPSHOTS_DIR, { recursive: true });
+  // Best-effort: writable on local dev, silently no-op on Vercel's read-only FS.
+  const canWriteUploads = await tryMkdirs([SOURCES_DIR, ORIGINALS_DIR, SNAPSHOTS_DIR]);
 
   // Trim body to a reasonable budget for the model
   const trimmed = input.body.length > MAX_BODY_CHARS
@@ -169,56 +155,81 @@ export async function generateReelFromSource(
     });
   }
 
-  // Render & archive the branded source PDF
-  const brandedPath = path.join(SOURCES_DIR, `${reel.id}-branded.pdf`);
-  const brandedBuf = await renderBrandedPdf({
-    reelTitle: reel.title,
-    topic: topic.label,
-    bloomLevel: input.bloomLevel,
-    generatedAt: new Date(),
-    generatedBy: input.generatedByName,
-    sourceType: input.sourceType,
-    sourceLabel: input.sourceLabel,
-    body: input.body,
-    summary: reelData.summary,
-  });
-  await fs.writeFile(brandedPath, brandedBuf);
-
+  // Render & archive the branded source PDF. On Vercel these writes fail
+  // (read-only FS) so we treat them as best-effort and still save the reel.
+  let brandedPath: string | null = null;
   let originalPath: string | null = null;
-  if (input.originalBuffer && input.originalFilename) {
-    const safeName = input.originalFilename.replace(/[^a-zA-Z0-9._-]/g, "_");
-    originalPath = path.join(ORIGINALS_DIR, `${reel.id}-${safeName}`);
-    await fs.writeFile(originalPath, input.originalBuffer);
-  }
-
   let snapshotPath: string | null = null;
-  if (input.snapshotPdfBuffer) {
-    snapshotPath = path.join(SNAPSHOTS_DIR, `${reel.id}-snapshot.pdf`);
-    await fs.writeFile(snapshotPath, input.snapshotPdfBuffer);
+
+  if (canWriteUploads) {
+    try {
+      const brandedBuf = await renderBrandedPdf({
+        reelTitle: reel.title,
+        topic: topic.label,
+        bloomLevel: input.bloomLevel,
+        generatedAt: new Date(),
+        generatedBy: input.generatedByName,
+        sourceType: input.sourceType,
+        sourceLabel: input.sourceLabel,
+        body: input.body,
+        summary: reelData.summary,
+      });
+      const p = path.join(SOURCES_DIR, `${reel.id}-branded.pdf`);
+      await fs.writeFile(p, brandedBuf);
+      brandedPath = p;
+    } catch (e) {
+      console.warn("[generate-from-source] branded PDF archive skipped:", (e as Error).message);
+    }
+
+    if (input.originalBuffer && input.originalFilename) {
+      try {
+        const safeName = input.originalFilename.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const p = path.join(ORIGINALS_DIR, `${reel.id}-${safeName}`);
+        await fs.writeFile(p, input.originalBuffer);
+        originalPath = p;
+      } catch (e) {
+        console.warn("[generate-from-source] original archive skipped:", (e as Error).message);
+      }
+    }
+
+    if (input.snapshotPdfBuffer) {
+      try {
+        const p = path.join(SNAPSHOTS_DIR, `${reel.id}-snapshot.pdf`);
+        await fs.writeFile(p, input.snapshotPdfBuffer);
+        snapshotPath = p;
+      } catch (e) {
+        console.warn("[generate-from-source] snapshot archive skipped:", (e as Error).message);
+      }
+    }
   }
 
-  // Insert ReelSource via raw SQL — Prisma client may not have been regenerated
-  // since the schema added the model.
   try {
-    const db = getRawDb();
-    db.prepare(
-      `INSERT INTO ReelSource (id, reelId, sourceType, originalName, originalUrl, originalPath, brandedPdfPath, snapshotPdfPath, extractedText, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      `cs_${Math.random().toString(36).slice(2, 12)}`,
-      reel.id,
-      input.sourceType,
-      input.originalFilename || null,
-      input.originalUrl || null,
-      originalPath,
-      brandedPath,
-      snapshotPath,
-      input.body,
-      new Date().toISOString()
-    );
-    db.close();
+    await prisma.reelSource.create({
+      data: {
+        reelId: reel.id,
+        sourceType: input.sourceType,
+        originalName: input.originalFilename || null,
+        originalUrl: input.originalUrl || null,
+        originalPath,
+        brandedPdfPath: brandedPath ?? "",
+        snapshotPdfPath: snapshotPath,
+        extractedText: input.body,
+      },
+    });
   } catch (e) {
     console.error("Failed to insert ReelSource row:", e);
   }
 
   return { reelId: reel.id, title: reel.title };
+}
+
+async function tryMkdirs(dirs: string[]): Promise<boolean> {
+  try {
+    for (const d of dirs) {
+      await fs.mkdir(d, { recursive: true });
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }

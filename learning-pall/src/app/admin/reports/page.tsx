@@ -1,22 +1,8 @@
 import { requireAdmin, isSuperAdminRole } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import Database from "better-sqlite3";
-import { existsSync } from "fs";
-import path from "path";
 import ReportsClient from "./ReportsClient";
 
 export const dynamic = "force-dynamic";
-
-function getRawDb() {
-  const candidates = [
-    path.join(process.cwd(), "data", "learning-pall.db"),
-    path.join(process.cwd(), "learning-pall", "data", "learning-pall.db"),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) return new Database(p);
-  }
-  return new Database("/Users/estesm4/Desktop/Learning Pall/learning-pall/data/learning-pall.db");
-}
 
 export default async function ReportsPage() {
   const me = await requireAdmin();
@@ -53,52 +39,32 @@ export default async function ReportsPage() {
     }),
   ]);
 
-  // Fetch resolution metadata via raw SQL — Prisma client cache may not know
-  // the new columns yet in dev.
-  type ResolutionRow = {
-    id: string;
-    resolution: string | null;
-    resolvedAt: string | null;
-    resolvedById: string | null;
-    resolverName: string | null;
-  };
-  const resolutionMap = new Map<string, ResolutionRow>();
-  if (reports.length > 0) {
-    try {
-      const db = getRawDb();
-      const placeholders = reports.map(() => "?").join(",");
-      const rows = db
-        .prepare(
-          `SELECT r.id, r.resolution, r.resolvedAt, r.resolvedById, u.name as resolverName
-           FROM ContentReport r
-           LEFT JOIN User u ON u.id = r.resolvedById
-           WHERE r.id IN (${placeholders})`
-        )
-        .all(...reports.map((r) => r.id)) as ResolutionRow[];
-      for (const row of rows) resolutionMap.set(row.id, row);
-      db.close();
-    } catch (e) {
-      console.error("Failed to fetch report resolutions:", e);
-    }
-  }
+  // Lookup resolver names for any reports that have a response
+  const resolverIds = Array.from(
+    new Set(reports.map((r) => r.resolvedById).filter((id): id is string => !!id))
+  );
+  const resolvers = resolverIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: resolverIds } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const resolverName = new Map(resolvers.map((u) => [u.id, u.name]));
 
   return (
     <ReportsClient
-      reports={reports.map((r) => {
-        const res = resolutionMap.get(r.id);
-        return {
-          id: r.id,
-          reason: r.reason,
-          details: r.details,
-          status: r.status,
-          createdAt: r.createdAt.toISOString(),
-          user: r.user,
-          reel: { id: r.reel.id, title: r.reel.title, topic: r.reel.topic.label },
-          resolution: res?.resolution ?? null,
-          resolvedAt: res?.resolvedAt ?? null,
-          resolverName: res?.resolverName ?? null,
-        };
-      })}
+      reports={reports.map((r) => ({
+        id: r.id,
+        reason: r.reason,
+        details: r.details,
+        status: r.status,
+        createdAt: r.createdAt.toISOString(),
+        user: r.user,
+        reel: { id: r.reel.id, title: r.reel.title, topic: r.reel.topic.label },
+        resolution: r.resolution,
+        resolvedAt: r.resolvedAt ? r.resolvedAt.toISOString() : null,
+        resolverName: r.resolvedById ? resolverName.get(r.resolvedById) ?? null : null,
+      }))}
       thumbs={thumbs.map((t) => ({
         id: t.id,
         updatedAt: t.updatedAt.toISOString(),

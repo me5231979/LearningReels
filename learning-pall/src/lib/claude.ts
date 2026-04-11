@@ -8,13 +8,13 @@ function getApiKey(): string {
     return process.env.ANTHROPIC_API_KEY;
   }
 
-  // Fallback: read directly from .env.local
+  // Fallback: read directly from .env.local (dev-only; Vercel has no such file)
   try {
     const envPath = join(process.cwd(), ".env.local");
     const content = readFileSync(envPath, "utf-8");
     for (const line of content.split("\n")) {
-      const match = line.match(/^ANTHROPIC_API_KEY=(.+)$/);
-      if (match) return match[1].trim();
+      const match = line.match(/^ANTHROPIC_API_KEY=['"]?([^'"\s]+?)['"]?\s*$/);
+      if (match) return match[1];
     }
   } catch {
     // ignore

@@ -1,23 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readSession } from "@/lib/auth";
-import Database from "better-sqlite3";
-import { existsSync } from "fs";
-import path from "path";
-
-function getDb() {
-  const candidates = [
-    path.join(process.cwd(), "data", "learning-pall.db"),
-    path.join(process.cwd(), "learning-pall", "data", "learning-pall.db"),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) return new Database(p);
-  }
-  return new Database("/Users/estesm4/Desktop/Learning Pall/learning-pall/data/learning-pall.db");
-}
-
-function generateId() {
-  return "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-}
+import { prisma } from "@/lib/db";
 
 export async function POST(
   request: NextRequest,
@@ -35,35 +18,22 @@ export async function POST(
     favorited?: boolean;
   };
 
-  const db = getDb();
+  const updateData: { thumbs?: "up" | "down" | null; favorited?: boolean } = {};
+  if (thumbs !== undefined) updateData.thumbs = thumbs;
+  if (favorited !== undefined) updateData.favorited = favorited;
 
-  const existing = db.prepare(
-    "SELECT id, thumbs, favorited FROM UserReaction WHERE userId = ? AND reelId = ?"
-  ).get(session.uid, reelId) as { id: string; thumbs: string | null; favorited: number } | undefined;
+  const reaction = await prisma.userReaction.upsert({
+    where: { userId_reelId: { userId: session.uid, reelId } },
+    create: {
+      userId: session.uid,
+      reelId,
+      thumbs: thumbs ?? null,
+      favorited: favorited ?? false,
+    },
+    update: updateData,
+    select: { thumbs: true, favorited: true },
+  });
 
-  let reaction;
-
-  if (existing) {
-    const updates: string[] = [];
-    const values: unknown[] = [];
-    if (thumbs !== undefined) { updates.push("thumbs = ?"); values.push(thumbs); }
-    if (favorited !== undefined) { updates.push("favorited = ?"); values.push(favorited ? 1 : 0); }
-    updates.push("updatedAt = datetime('now')");
-    values.push(existing.id);
-    db.prepare(`UPDATE UserReaction SET ${updates.join(", ")} WHERE id = ?`).run(...values);
-    reaction = {
-      thumbs: thumbs !== undefined ? thumbs : existing.thumbs,
-      favorited: favorited !== undefined ? favorited : !!existing.favorited,
-    };
-  } else {
-    const id = generateId();
-    db.prepare(
-      "INSERT INTO UserReaction (id, userId, reelId, thumbs, favorited, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))"
-    ).run(id, session.uid, reelId, thumbs ?? null, favorited ? 1 : 0);
-    reaction = { thumbs: thumbs ?? null, favorited: favorited ?? false };
-  }
-
-  db.close();
   return NextResponse.json({ reaction });
 }
 
@@ -77,15 +47,12 @@ export async function GET(
   }
 
   const { reelId } = await params;
-  const db = getDb();
-
-  const row = db.prepare(
-    "SELECT thumbs, favorited FROM UserReaction WHERE userId = ? AND reelId = ?"
-  ).get(session.uid, reelId) as { thumbs: string | null; favorited: number } | undefined;
-
-  db.close();
+  const row = await prisma.userReaction.findUnique({
+    where: { userId_reelId: { userId: session.uid, reelId } },
+    select: { thumbs: true, favorited: true },
+  });
 
   return NextResponse.json({
-    reaction: row ? { thumbs: row.thumbs, favorited: !!row.favorited } : { thumbs: null, favorited: false },
+    reaction: row ?? { thumbs: null, favorited: false },
   });
 }

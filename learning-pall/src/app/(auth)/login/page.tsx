@@ -31,9 +31,13 @@ export default function LoginPage() {
         return;
       }
 
-      // Redirect based on onboarding status
-      if (!data.user.onboardedAt && data.user.role === "learner") {
-        router.push("/onboarding");
+      // Redirect based on role.
+      // Admin-capable users see a context chooser first so they can pick
+      // between the learner app and the admin portal. Everyone else lands
+      // on /home (they can still open Explore from the bottom nav).
+      const role = data.user.role;
+      if (role === "admin" || role === "super_admin") {
+        router.push("/choose-context");
       } else {
         router.push("/home");
       }

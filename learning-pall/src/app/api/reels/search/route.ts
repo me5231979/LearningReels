@@ -2,20 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { readSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { isVisibleToUser, parseTargetDepartments } from "@/lib/departments";
-import Database from "better-sqlite3";
-import { existsSync } from "fs";
-import path from "path";
-
-function getRawDb() {
-  const candidates = [
-    path.join(process.cwd(), "data", "learning-pall.db"),
-    path.join(process.cwd(), "learning-pall", "data", "learning-pall.db"),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) return new Database(p);
-  }
-  return new Database("/Users/estesm4/Desktop/Learning Pall/learning-pall/data/learning-pall.db");
-}
 
 export async function GET(request: NextRequest) {
   const session = await readSession();
@@ -71,22 +57,6 @@ export async function GET(request: NextRequest) {
     )
     .slice(0, limit);
 
-  // Fetch isFeatured via raw SQL — Prisma client cache may not know the column yet.
-  const featuredSet = new Set<string>();
-  if (visible.length > 0) {
-    try {
-      const db = getRawDb();
-      const placeholders = visible.map(() => "?").join(",");
-      const rows = db
-        .prepare(`SELECT id FROM LearningReel WHERE isFeatured = 1 AND id IN (${placeholders})`)
-        .all(...visible.map((r) => r.id)) as { id: string }[];
-      for (const r of rows) featuredSet.add(r.id);
-      db.close();
-    } catch (e) {
-      console.error("Failed to fetch featured set:", e);
-    }
-  }
-
   return NextResponse.json({
     reels: visible.map((r) => ({
       id: r.id,
@@ -97,7 +67,7 @@ export async function GET(request: NextRequest) {
       topicId: r.topic.id,
       topicLabel: r.topic.label,
       categorySlug: r.topic.category,
-      isFeatured: featuredSet.has(r.id),
+      isFeatured: r.isFeatured,
       createdAt: r.createdAt.toISOString(),
     })),
   });

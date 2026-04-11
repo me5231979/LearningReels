@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readSession } from "@/lib/auth";
+import { readSession, isAdminRole } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { generateReelsForTopic } from "@/lib/generate-reels";
 import type { BloomsLevel } from "@/types/course";
@@ -29,9 +29,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  // Only admins can bulk generate
+  // Only admins (incl. super admins) can bulk generate
   const user = await prisma.user.findUnique({ where: { id: session.uid } });
-  if (!user || user.role !== "admin") {
+  if (!user || !isAdminRole(user.role)) {
     return NextResponse.json({ error: "Admin only" }, { status: 403 });
   }
 

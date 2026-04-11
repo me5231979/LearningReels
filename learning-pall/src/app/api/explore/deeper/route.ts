@@ -2,21 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getAnthropicClient } from "@/lib/claude";
-import Database from "better-sqlite3";
-import { existsSync } from "fs";
-import path from "path";
 import { serializeCoachPersona, type GeneratedCoachPersona } from "@/lib/coach";
-
-function getRawDb() {
-  const candidates = [
-    path.join(process.cwd(), "data", "learning-pall.db"),
-    path.join(process.cwd(), "learning-pall", "data", "learning-pall.db"),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) return new Database(p);
-  }
-  return new Database("/Users/estesm4/Desktop/Learning Pall/learning-pall/data/learning-pall.db");
-}
 
 const SYSTEM_PROMPT = `You are a Vanderbilt University learning content architect creating ADVANCED Learning Reels for a learner who has completed the basics on a topic.
 
@@ -85,17 +71,8 @@ export async function POST(request: NextRequest) {
   if (!topic) {
     return NextResponse.json({ error: "Topic not found" }, { status: 404 });
   }
-
-  // Verify ownership via raw SQL
-  try {
-    const db = getRawDb();
-    const row = db.prepare(`SELECT userId FROM Topic WHERE id = ?`).get(topicId) as { userId: string | null } | undefined;
-    db.close();
-    if (!row || row.userId !== session.uid) {
-      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-    }
-  } catch (e) {
-    console.error("Ownership check failed:", e);
+  if (topic.userId !== session.uid) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
   const TOTAL = 5;
@@ -150,23 +127,11 @@ Source from a real, reputable publication or research paper. Include the actual 
             contentJson: JSON.stringify(reelData),
             coachPersona,
             status: "published",
+            sourceUrl: reelData.sourceUrl || null,
+            sourceCredit: reelData.sourceCredit || null,
+            coreCompetency: reelData.coreCompetency || null,
           },
         });
-
-        try {
-          const db = getRawDb();
-          db.prepare(
-            `UPDATE LearningReel SET sourceUrl = ?, sourceCredit = ?, coreCompetency = ? WHERE id = ?`
-          ).run(
-            reelData.sourceUrl || null,
-            reelData.sourceCredit || null,
-            reelData.coreCompetency || null,
-            reel.id
-          );
-          db.close();
-        } catch (e) {
-          console.error("Failed to set source metadata:", e);
-        }
 
         for (let j = 0; j < reelData.cards.length; j++) {
           const card = reelData.cards[j];

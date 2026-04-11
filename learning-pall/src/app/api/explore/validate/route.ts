@@ -1,21 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readSession } from "@/lib/auth";
 import { getAnthropicClient } from "@/lib/claude";
-import Database from "better-sqlite3";
-import { existsSync } from "fs";
-import path from "path";
-import { randomUUID } from "crypto";
-
-function getRawDb() {
-  const candidates = [
-    path.join(process.cwd(), "data", "learning-pall.db"),
-    path.join(process.cwd(), "learning-pall", "data", "learning-pall.db"),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) return new Database(p);
-  }
-  return new Database("/Users/estesm4/Desktop/Learning Pall/learning-pall/data/learning-pall.db");
-}
 
 const SYSTEM = `You are the Explore validator for Learning Reels — Vanderbilt's professional development micro-learning platform. A user has submitted a topic they want to learn about. Classify it.
 
@@ -88,17 +73,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Log GREY_AREA flags for admin review
   if (parsed.classification === "GREY_AREA") {
-    try {
-      const db = getRawDb();
-      db.prepare(
-        `INSERT INTO AdminFlag (id, userId, content, reason, classification) VALUES (?, ?, ?, ?, ?)`
-      ).run(randomUUID(), session.uid, topic.trim(), parsed.reason, parsed.classification);
-      db.close();
-    } catch (e) {
-      console.error("Failed to log admin flag:", e);
-    }
+    console.warn("[explore:grey_area]", {
+      userId: session.uid,
+      topic: topic.trim(),
+      reason: parsed.reason,
+    });
   }
 
   return NextResponse.json(parsed);

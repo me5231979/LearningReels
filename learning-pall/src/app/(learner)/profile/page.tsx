@@ -1,9 +1,6 @@
 import { readSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import Database from "better-sqlite3";
-import { existsSync } from "fs";
-import path from "path";
 import Link from "next/link";
 import { Sparkles, Heart, Flag, MessageSquare } from "lucide-react";
 import ProfileEditor from "@/components/profile/ProfileEditor";
@@ -31,17 +28,6 @@ const CORE_COMPETENCIES = [
   "Develops and implements University strategy",
   "Makes effective and ethical decisions for the University",
 ];
-
-function getRawDb() {
-  const candidates = [
-    path.join(process.cwd(), "data", "learning-pall.db"),
-    path.join(process.cwd(), "learning-pall", "data", "learning-pall.db"),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) return new Database(p);
-  }
-  return new Database("/Users/estesm4/Desktop/Learning Pall/learning-pall/data/learning-pall.db");
-}
 
 export default async function ProfilePage() {
   const session = await readSession();
@@ -83,126 +69,111 @@ export default async function ProfilePage() {
   const completedCount = user.progress.length;
   const completedReelIds = user.progress.map((p) => p.reelId);
 
-  // Query core competency counts from completed reels via raw SQL
-  let competencyCounts = new Map<string, number>();
-  let myLearningTopics: { id: string; slug: string; label: string; reelCount: number }[] = [];
-  let favoriteReels: {
-    id: string;
-    title: string;
-    summary: string;
-    topicLabel: string;
-    categorySlug: string;
-  }[] = [];
-  type MyReport = {
-    id: string;
-    reason: string;
-    details: string | null;
-    status: string;
-    createdAt: string;
-    resolution: string | null;
-    resolvedAt: string | null;
-    resolverName: string | null;
-    reelId: string;
-    reelTitle: string;
-    topicLabel: string;
-    categorySlug: string;
-  };
-  let myReports: MyReport[] = [];
-  try {
-    const db = getRawDb();
-    if (completedReelIds.length > 0) {
-      const placeholders = completedReelIds.map(() => "?").join(",");
-      const rows = db.prepare(
-        `SELECT coreCompetency, COUNT(*) as cnt FROM LearningReel WHERE id IN (${placeholders}) AND coreCompetency IS NOT NULL GROUP BY coreCompetency`
-      ).all(...completedReelIds) as { coreCompetency: string; cnt: number }[];
-      competencyCounts = new Map(rows.map((r) => [r.coreCompetency, r.cnt]));
+  // Core competency counts from completed reels
+  const competencyCounts = new Map<string, number>();
+  if (completedReelIds.length > 0) {
+    const grouped = await prisma.learningReel.groupBy({
+      by: ["coreCompetency"],
+      where: {
+        id: { in: completedReelIds },
+        coreCompetency: { not: null },
+      },
+      _count: { _all: true },
+    });
+    for (const g of grouped) {
+      if (g.coreCompetency) competencyCounts.set(g.coreCompetency, g._count._all);
     }
+  }
 
-    // Fetch user's custom topics with reel counts
-    const topicRows = db.prepare(
-      `SELECT t.id, t.slug, t.label, COUNT(r.id) as reelCount
-       FROM Topic t
-       LEFT JOIN LearningReel r ON r.topicId = t.id
-       WHERE t.userId = ? AND t.isCustom = 1
-       GROUP BY t.id
-       ORDER BY t.createdAt DESC`
-    ).all(session.uid) as { id: string; slug: string; label: string; reelCount: number }[];
-    myLearningTopics = topicRows;
+  // User's custom topics with reel counts
+  const customTopics = await prisma.topic.findMany({
+    where: { userId: session.uid, isCustom: true },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      slug: true,
+      label: true,
+      _count: { select: { reels: true } },
+    },
+  });
+  const myLearningTopics = customTopics.map((t) => ({
+    id: t.id,
+    slug: t.slug,
+    label: t.label,
+    reelCount: t._count.reels,
+  }));
 
-    // Fetch favorited reels with their topic info for deep-linking
-    const favRows = db.prepare(
-      `SELECT r.id, r.title, r.summary, t.label as topicLabel, t.category as categorySlug
-       FROM UserReaction ur
-       JOIN LearningReel r ON r.id = ur.reelId
-       JOIN Topic t ON t.id = r.topicId
-       WHERE ur.userId = ? AND ur.favorited = 1
-       ORDER BY ur.updatedAt DESC`
-    ).all(session.uid) as {
-      id: string;
-      title: string;
-      summary: string;
-      topicLabel: string;
-      categorySlug: string;
-    }[];
-    favoriteReels = favRows;
+  // Favorited reels with topic info
+  const favRows = await prisma.userReaction.findMany({
+    where: { userId: session.uid, favorited: true },
+    orderBy: { updatedAt: "desc" },
+    include: {
+      reel: {
+        select: {
+          id: true,
+          title: true,
+          summary: true,
+          topic: { select: { label: true, category: true } },
+        },
+      },
+    },
+  });
+  const favoriteReels = favRows.map((ur) => ({
+    id: ur.reel.id,
+    title: ur.reel.title,
+    summary: ur.reel.summary,
+    topicLabel: ur.reel.topic.label,
+    categorySlug: ur.reel.topic.category,
+  }));
 
-    // Fetch this user's content reports with any admin response
-    const reportRows = db.prepare(
-      `SELECT cr.id, cr.reason, cr.details, cr.status, cr.createdAt,
-              cr.resolution, cr.resolvedAt, cr.resolvedById,
-              resolver.name as resolverName,
-              r.id as reelId, r.title as reelTitle,
-              t.label as topicLabel, t.category as categorySlug
-         FROM ContentReport cr
-         JOIN LearningReel r ON r.id = cr.reelId
-         JOIN Topic t ON t.id = r.topicId
-         LEFT JOIN User resolver ON resolver.id = cr.resolvedById
-        WHERE cr.userId = ?
-        ORDER BY cr.createdAt DESC`
-    ).all(session.uid) as Array<{
-      id: string;
-      reason: string;
-      details: string | null;
-      status: string;
-      createdAt: string;
-      resolution: string | null;
-      resolvedAt: string | null;
-      resolvedById: string | null;
-      resolverName: string | null;
-      reelId: string;
-      reelTitle: string;
-      topicLabel: string;
-      categorySlug: string;
-    }>;
-    myReports = reportRows.map((r) => ({
-      id: r.id,
-      reason: r.reason,
-      details: r.details,
-      status: r.status,
-      createdAt: r.createdAt,
-      resolution: r.resolution,
-      resolvedAt: r.resolvedAt,
-      resolverName: r.resolverName,
-      reelId: r.reelId,
-      reelTitle: r.reelTitle,
-      topicLabel: r.topicLabel,
-      categorySlug: r.categorySlug,
-    }));
+  // Content reports with any admin response
+  const reportRows = await prisma.contentReport.findMany({
+    where: { userId: session.uid },
+    orderBy: { createdAt: "desc" },
+    include: {
+      reel: {
+        select: {
+          id: true,
+          title: true,
+          topic: { select: { label: true, category: true } },
+        },
+      },
+    },
+  });
+  const resolverIds = Array.from(
+    new Set(reportRows.map((r) => r.resolvedById).filter((id): id is string => !!id))
+  );
+  const resolvers = resolverIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: resolverIds } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const resolverName = new Map(resolvers.map((u) => [u.id, u.name]));
+  const myReports = reportRows.map((r) => ({
+    id: r.id,
+    reason: r.reason,
+    details: r.details,
+    status: r.status,
+    createdAt: r.createdAt.toISOString(),
+    resolution: r.resolution,
+    resolvedAt: r.resolvedAt ? r.resolvedAt.toISOString() : null,
+    resolverName: r.resolvedById ? resolverName.get(r.resolvedById) ?? null : null,
+    reelId: r.reel.id,
+    reelTitle: r.reel.title,
+    topicLabel: r.reel.topic.label,
+    categorySlug: r.reel.topic.category,
+  }));
 
-    // Mark any unread resolutions as read now that the learner is viewing them
-    const unreadIds = reportRows
-      .filter((r) => r.resolution && r.resolvedAt)
-      .map((r) => r.id);
-    if (unreadIds.length > 0) {
-      const ph = unreadIds.map(() => "?").join(",");
-      db.prepare(
-        `UPDATE ContentReport SET resolutionReadAt = COALESCE(resolutionReadAt, ?) WHERE id IN (${ph})`
-      ).run(new Date().toISOString(), ...unreadIds);
-    }
-
-    db.close();
-  } catch (e) {
-    console.error("Failed to fetch profile data:", e);
+  // Mark any unread resolutions as read now that the learner is viewing them
+  const unreadIds = reportRows
+    .filter((r) => r.resolution && r.resolvedAt && !r.resolutionReadAt)
+    .map((r) => r.id);
+  if (unreadIds.length > 0) {
+    await prisma.contentReport.updateMany({
+      where: { id: { in: unreadIds } },
+      data: { resolutionReadAt: new Date() },
+    });
   }
 
   return (

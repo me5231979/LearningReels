@@ -1,20 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import Database from "better-sqlite3";
-import { existsSync } from "fs";
-import path from "path";
-
-function getRawDb() {
-  const candidates = [
-    path.join(process.cwd(), "data", "learning-pall.db"),
-    path.join(process.cwd(), "learning-pall", "data", "learning-pall.db"),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) return new Database(p);
-  }
-  return new Database("/Users/estesm4/Desktop/Learning Pall/learning-pall/data/learning-pall.db");
-}
 
 export async function PATCH(
   request: NextRequest,
@@ -32,17 +18,8 @@ export async function PATCH(
   for (const key of ["title", "summary", "status", "sourceCredit", "sourceUrl"] as const) {
     if (key in body) reelUpdate[key] = body[key];
   }
-
-  // isFeatured is updated via raw SQL because the Prisma client cache may
-  // not yet know about the column after an ALTER TABLE in dev.
   if ("isFeatured" in body) {
-    try {
-      const db = getRawDb();
-      db.prepare(`UPDATE LearningReel SET isFeatured = ? WHERE id = ?`).run(body.isFeatured ? 1 : 0, id);
-      db.close();
-    } catch (e) {
-      console.error("Failed to update isFeatured:", e);
-    }
+    reelUpdate.isFeatured = !!body.isFeatured;
   }
 
   await prisma.$transaction(async (tx) => {

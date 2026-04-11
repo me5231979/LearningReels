@@ -2,22 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getAnthropicClient } from "@/lib/claude";
-import Database from "better-sqlite3";
-import { existsSync } from "fs";
-import path from "path";
-import { randomUUID } from "crypto";
 import { serializeCoachPersona, type GeneratedCoachPersona } from "@/lib/coach";
-
-function getRawDb() {
-  const candidates = [
-    path.join(process.cwd(), "data", "learning-pall.db"),
-    path.join(process.cwd(), "learning-pall", "data", "learning-pall.db"),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) return new Database(p);
-  }
-  return new Database("/Users/estesm4/Desktop/Learning Pall/learning-pall/data/learning-pall.db");
-}
 
 type BloomLevel = "remember" | "understand" | "apply" | "analyze" | "evaluate" | "create";
 // 3-reel sequence: foundational → application → analysis. Deeper levels are
@@ -178,17 +163,10 @@ export async function POST(request: NextRequest) {
       label: topicLabel,
       description: topicDescription,
       category: slug,
+      userId: session.uid,
+      isCustom: true,
     },
   });
-
-  // Set userId + isCustom via raw SQL (Prisma client cache may not know these columns)
-  try {
-    const db = getRawDb();
-    db.prepare(`UPDATE Topic SET userId = ?, isCustom = 1 WHERE id = ?`).run(session.uid, topic.id);
-    db.close();
-  } catch (e) {
-    console.error("Failed to mark topic as custom:", e);
-  }
 
   // Generate 3 reels — return topic immediately, generate in background.
   // Learners can request additional advanced reels via the "Dive Deeper"
@@ -232,24 +210,11 @@ export async function POST(request: NextRequest) {
             contentJson: JSON.stringify(reelData),
             coachPersona,
             status: "published",
+            sourceUrl: reelData.sourceUrl || null,
+            sourceCredit: reelData.sourceCredit || null,
+            coreCompetency: reelData.coreCompetency || null,
           },
         });
-
-        // Set source/competency via raw SQL
-        try {
-          const db = getRawDb();
-          db.prepare(
-            `UPDATE LearningReel SET sourceUrl = ?, sourceCredit = ?, coreCompetency = ? WHERE id = ?`
-          ).run(
-            reelData.sourceUrl || null,
-            reelData.sourceCredit || null,
-            reelData.coreCompetency || null,
-            reel.id
-          );
-          db.close();
-        } catch (e) {
-          console.error("Failed to set source metadata:", e);
-        }
 
         for (let j = 0; j < reelData.cards.length; j++) {
           const card = reelData.cards[j];

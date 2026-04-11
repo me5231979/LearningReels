@@ -2,14 +2,17 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Home, Play, Compass, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Home, Play, Compass, User, Shield } from "lucide-react";
 
-const NAV_ITEMS = [
+const BASE_NAV = [
   { href: "/home", label: "Home", icon: Home },
   { href: "/reels", label: "Reels", icon: Play },
   { href: "/onboarding", label: "Explore", icon: Compass },
   { href: "/profile", label: "Profile", icon: User },
 ];
+
+const ADMIN_NAV_ITEM = { href: "/admin", label: "Admin", icon: Shield };
 
 export default function LearnerLayout({
   children,
@@ -17,6 +20,24 @@ export default function LearnerLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d && (d.role === "admin" || d.role === "super_admin")) {
+          setIsAdmin(true);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const navItems = isAdmin ? [...BASE_NAV, ADMIN_NAV_ITEM] : BASE_NAV;
 
   return (
     <div className="flex flex-col bg-vand-black" style={{ height: "100dvh" }}>
@@ -28,7 +49,7 @@ export default function LearnerLayout({
       {/* Bottom navigation — always visible so users can exit back to Home */}
       <nav className="fixed bottom-0 inset-x-0 z-50 bg-vand-black/95 backdrop-blur-sm border-t border-white/5">
         <div className="flex items-center justify-around h-16 max-w-md mx-auto">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          {navItems.map(({ href, label, icon: Icon }) => {
             const active = pathname.startsWith(href);
             return (
               <Link

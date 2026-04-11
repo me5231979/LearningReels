@@ -1,22 +1,8 @@
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import Database from "better-sqlite3";
-import { existsSync } from "fs";
-import path from "path";
 import ReelsClient from "./ReelsClient";
 
 export const dynamic = "force-dynamic";
-
-function getRawDb() {
-  const candidates = [
-    path.join(process.cwd(), "data", "learning-pall.db"),
-    path.join(process.cwd(), "learning-pall", "data", "learning-pall.db"),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) return new Database(p);
-  }
-  return new Database("/Users/estesm4/Desktop/Learning Pall/learning-pall/data/learning-pall.db");
-}
 
 export default async function ReelsAdminPage() {
   const me = await requireAdmin();
@@ -31,6 +17,7 @@ export default async function ReelsAdminPage() {
         summary: true,
         bloomLevel: true,
         status: true,
+        isFeatured: true,
         createdAt: true,
         topic: { select: { id: true, slug: true, label: true } },
         _count: { select: { progress: true, reactions: true, reports: true } },
@@ -47,17 +34,6 @@ export default async function ReelsAdminPage() {
     }),
   ]);
 
-  // Fetch isFeatured via raw SQL — Prisma client cache may not know this column yet.
-  const featuredSet = new Set<string>();
-  try {
-    const db = getRawDb();
-    const rows = db.prepare(`SELECT id FROM LearningReel WHERE isFeatured = 1`).all() as { id: string }[];
-    for (const r of rows) featuredSet.add(r.id);
-    db.close();
-  } catch (e) {
-    console.error("Failed to fetch featured reels:", e);
-  }
-
   const shaped = reels.map((r) => {
     const up = r.reactions.filter((x) => x.thumbs === "up").length;
     const down = r.reactions.filter((x) => x.thumbs === "down").length;
@@ -67,7 +43,7 @@ export default async function ReelsAdminPage() {
       summary: r.summary,
       bloomLevel: r.bloomLevel,
       status: r.status,
-      isFeatured: featuredSet.has(r.id),
+      isFeatured: r.isFeatured,
       createdAt: r.createdAt.toISOString(),
       topic: r.topic,
       completions: r._count.progress,

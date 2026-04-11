@@ -31,9 +31,7 @@ async function loadReelWithPersona(reelId: string): Promise<
   });
   if (!reel) return null;
 
-  const stored = parseStoredCoachPersona(
-    (reel as { coachPersona?: string | null }).coachPersona ?? null
-  );
+  const stored = parseStoredCoachPersona(reel.coachPersona ?? null);
   if (stored) {
     return { reelId: reel.id, title: reel.title, persona: stored };
   }
