@@ -13,11 +13,17 @@ CONTENT RESTRICTIONS:
 - ALWAYS include a real, verifiable source URL for the primary content referenced (research paper, article, book page, or reputable website).
 - Include the source name/author for attribution (e.g. "Harvard Business Review", "Adam Grant, Think Again").
 
+VISUAL DESCRIPTION REQUIREMENTS:
+- All visualDescription fields MUST depict Western society and culture exclusively.
+- Settings must be modern American or Western European: corporate offices, university campuses, conference rooms, professional workplaces.
+- People, attire, architecture, and cultural references must reflect contemporary Western (US, Canada, UK, Western Europe) corporate or academic life.
+- Do NOT describe East Asian, Middle Eastern, South Asian, or non-Western settings or cultural elements.
+
 PEDAGOGICAL MODEL:
-- Each reel is 3-5 cards, each card 60-90 seconds.
+- Each reel is exactly 5 cards: hook → narration → scenario → interaction → feedback.
 - Follow Mayer's Multimedia Principles: narration describes visuals, never duplicate narration as on-screen text.
 - Apply Keller's ARCS: hook with attention, establish relevance, build confidence, deliver satisfaction.
-- Embed retrieval practice: every reel must include at least one interaction card.
+- Embed retrieval practice: every reel must include one interaction card (quiz) AND one scenario card (decision exercise).
 - Use the generation effect: prompt learners to produce answers before revealing them.
 
 OUTPUT FORMAT: Respond with a JSON object only, no markdown wrapping. The structure must be:
@@ -35,23 +41,52 @@ OUTPUT FORMAT: Respond with a JSON object only, no markdown wrapping. The struct
   "estimatedSeconds": number,
   "cards": [
     {
-      "cardType": "hook" | "narration" | "interaction" | "feedback",
+      "cardType": "hook" | "narration" | "scenario" | "interaction" | "feedback",
       "title": "string — card title",
-      "script": "string — narration text for TTS (60-120 words max per card)",
+      "script": "string — see CARD-SPECIFIC SCRIPT RULES below",
       "visualDescription": "string — what the visual should depict (for image generation)",
       "animationCue": "string — animation type: 'reveal', 'diagram', 'chart', 'process', 'comparison'",
       "quizJson": null | { "question": "string", "choices": ["string", "string", "string", "string"], "correctIndex": number, "explanation": "string" },
+      "scenarioJson": null | { "situation": "string", "choices": [{ "label": "string", "feedback": "string" }, { "label": "string", "feedback": "string" }, { "label": "string", "feedback": "string" }], "debrief": "string" },
       "durationMs": number
     }
   ]
 }
 
-CARD SEQUENCE RULES:
-1. First card MUST be type "hook" — a surprising fact, provocative question, or scenario
-2. Middle cards are "narration" (teaching content) and "interaction" (retrieval practice)
-3. At least one card MUST be "interaction" with quizJson
-4. Last card MUST be "feedback" — summarize the key takeaway and bridge to continued learning
-5. Total cards: 3-5 (not fewer, not more)`;
+CARD SEQUENCE RULES (exactly 5 cards in this order):
+1. Card 1 — "hook": A surprising fact, provocative question, or real workplace scenario from the source. Keep it punchy (40-60 words).
+2. Card 2 — "narration": The core teaching content. Script MUST use the **What** / **Why** / **How** structure (see NARRATION SCRIPT FORMAT below).
+3. Card 3 — "scenario": A realistic Vanderbilt workplace situation. scenarioJson required (see SCENARIO RULES below). Script field should be a brief intro sentence.
+4. Card 4 — "interaction": A retrieval-practice quiz. quizJson required with 4 choices and one correct answer.
+5. Card 5 — "feedback": Key takeaway + micro-action. Script MUST use the FEEDBACK SCRIPT FORMAT below.
+
+NARRATION SCRIPT FORMAT (Card 2):
+The narration card script MUST have three clearly labeled sections using bold markdown:
+
+**What** [Tell the learner what the concept/framework/skill is. Define it clearly. 2-3 sentences.]
+
+**Why** [Tell the learner why this matters to them in their work. If the reel has targetDepartments, make it specific to that department/role. If for all staff, keep it generic but relevant. 2-3 sentences.]
+
+**How** [Give the learner a concrete method to apply this concept. Step-by-step if possible. 2-3 sentences.]
+
+NARRATION LENGTH BY BLOOM'S LEVEL:
+- Remember / Understand: 120-150 words total across What/Why/How
+- Apply / Analyze: 150-180 words total
+- Evaluate / Create: 170-200 words total
+
+SCENARIO RULES (Card 3):
+- The scenario is a "what would you do" decision exercise, NOT a quiz. Tone: "what would you do?" not "what is the correct answer?"
+- The situation must be specific to Vanderbilt staff roles and workplace dynamics — reference departments, campus culture, university operations, or academic workplace norms.
+- Present exactly 3 plausible choices. No obviously wrong answers — all should be defensible.
+- Each choice gets instructive feedback explaining the consequences and trade-offs of that decision.
+- The debrief (shown after any choice) connects the scenario back to the core concept from the narration card.
+
+FEEDBACK SCRIPT FORMAT (Card 5):
+The script must end with a micro-action using bold markdown:
+
+[Key takeaway summary — 2-3 sentences reinforcing the core concept.]
+
+**Micro-Action:** [One specific, concrete thing the learner can do within the next 24 hours to apply what they learned. Be precise — not "think about it" but "open your calendar and block 30 minutes for X."]`;
 
 export function buildReelUserPrompt(
   topic: string,
@@ -74,7 +109,9 @@ The cognitive verb for this level is "${bloom.verb}". Content and quiz questions
   }
 
   prompt += `
-Generate a complete reel with 4 cards following the hook → narration → interaction → feedback pattern. Target ${bloom.label}-level cognitive engagement. Make the hook genuinely attention-grabbing — something the learner won't want to swipe past.`;
+Generate a complete reel with exactly 5 cards: hook → narration (What/Why/How) → scenario (workplace decision) → interaction (quiz) → feedback (takeaway + micro-action).
+
+Target ${bloom.label}-level cognitive engagement. Make the hook genuinely attention-grabbing. Make the scenario feel like a real moment a Vanderbilt staff member would face.`;
 
   return prompt;
 }

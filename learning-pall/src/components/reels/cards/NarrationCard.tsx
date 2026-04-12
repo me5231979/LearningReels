@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import type { ReelCardData } from "../ReelFeed";
 import { motion } from "framer-motion";
 import { useTTS } from "@/hooks/useTTS";
@@ -16,6 +16,31 @@ type Props = {
 // Cache generated image URLs across renders
 const imageUrlCache = new Map<string, string>();
 
+/**
+ * Parse a narration script that uses **What**, **Why**, **How** headers.
+ * Returns structured sections if all three are found, otherwise null
+ * (falls back to rendering as plain text for legacy reels).
+ */
+function parseWWH(script: string): { what: string; why: string; how: string } | null {
+  // Match bold markdown-style headers: **What** / **Why** / **How**
+  // Also match plain "What:" / "Why:" / "How:" patterns
+  const whatMatch = script.match(/\*\*What[:\s]*\*\*\s*/i) || script.match(/^What:\s*/im);
+  const whyMatch = script.match(/\*\*Why[:\s]*\*\*\s*/i) || script.match(/^Why:\s*/im);
+  const howMatch = script.match(/\*\*How[:\s]*\*\*\s*/i) || script.match(/^How:\s*/im);
+
+  if (!whatMatch || !whyMatch || !howMatch) return null;
+
+  const whatIdx = script.indexOf(whatMatch[0]);
+  const whyIdx = script.indexOf(whyMatch[0]);
+  const howIdx = script.indexOf(howMatch[0]);
+
+  const what = script.slice(whatIdx + whatMatch[0].length, whyIdx).trim();
+  const why = script.slice(whyIdx + whyMatch[0].length, howIdx).trim();
+  const how = script.slice(howIdx + howMatch[0].length).trim();
+
+  return { what, why, how };
+}
+
 export default function NarrationCard({ card, isActive }: Props) {
   const { speak, stop, isPlaying, isAvailable } = useTTS();
   const [imageUrl, setImageUrl] = useState<string | null>(
@@ -24,19 +49,25 @@ export default function NarrationCard({ card, isActive }: Props) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
 
+  // Parse What/Why/How structure from script
+  const wwh = useMemo(() => parseWWH(card.script), [card.script]);
+
+  // Strip markdown bold markers for TTS (read clean text)
+  const ttsText = useMemo(() => {
+    return card.script.replace(/\*\*/g, "");
+  }, [card.script]);
+
   // Auto-speak when card becomes active
   useEffect(() => {
-    if (isActive && card.script) {
-      speak(card.script);
+    if (isActive && ttsText) {
+      speak(ttsText);
     }
     return () => {
       stop();
     };
-  }, [isActive, card.script, speak, stop]);
+  }, [isActive, ttsText, speak, stop]);
 
-  // Generate image if none exists — only for the active reel, so we don't
-  // saturate the dev server with hundreds of concurrent DALL-E requests
-  // (which blocks Next.js RSC navigation requests in the same queue).
+  // Generate image if none exists
   useEffect(() => {
     if (imageUrl || !card.visualDescription) return;
     if (!isActive) return;
@@ -106,7 +137,7 @@ export default function NarrationCard({ card, isActive }: Props) {
             onClick={(e) => {
               e.stopPropagation();
               if (isPlaying) stop();
-              else speak(card.script);
+              else speak(ttsText);
             }}
             className="absolute top-2 right-2 z-20 w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center"
           >
@@ -138,14 +169,50 @@ export default function NarrationCard({ card, isActive }: Props) {
           style={{ transformOrigin: "left" }}
         />
 
-        <motion.p
-          className="text-vand-sand/80 text-[13px] leading-relaxed"
-          initial={{ opacity: 0, y: 8 }}
-          animate={isActive ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          {card.script}
-        </motion.p>
+        {wwh ? (
+          /* Structured What / Why / How layout */
+          <motion.div
+            className="space-y-3"
+            initial={{ opacity: 0, y: 8 }}
+            animate={isActive ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
+            <div>
+              <p className="text-vand-gold font-condensed text-[11px] uppercase tracking-wider font-bold mb-0.5">
+                What
+              </p>
+              <p className="text-vand-sand/80 text-[13px] leading-relaxed">
+                {wwh.what}
+              </p>
+            </div>
+            <div>
+              <p className="text-vand-gold font-condensed text-[11px] uppercase tracking-wider font-bold mb-0.5">
+                Why
+              </p>
+              <p className="text-vand-sand/80 text-[13px] leading-relaxed">
+                {wwh.why}
+              </p>
+            </div>
+            <div>
+              <p className="text-vand-gold font-condensed text-[11px] uppercase tracking-wider font-bold mb-0.5">
+                How
+              </p>
+              <p className="text-vand-sand/80 text-[13px] leading-relaxed">
+                {wwh.how}
+              </p>
+            </div>
+          </motion.div>
+        ) : (
+          /* Legacy plain-text narration (backward compatible) */
+          <motion.p
+            className="text-vand-sand/80 text-[13px] leading-relaxed"
+            initial={{ opacity: 0, y: 8 }}
+            animate={isActive ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
+            {card.script}
+          </motion.p>
+        )}
 
         {/* Audio waveform when speaking */}
         {isPlaying && (

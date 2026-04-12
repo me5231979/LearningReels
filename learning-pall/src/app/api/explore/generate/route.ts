@@ -52,9 +52,9 @@ VISUAL DESCRIPTION REQUIREMENTS:
 - Do NOT describe East Asian, Middle Eastern, South Asian, or non-Western settings or cultural elements.
 
 PEDAGOGICAL MODEL:
-- Each reel is 4 cards: hook → narration → interaction → feedback.
+- Each reel is exactly 5 cards: hook → narration → scenario → interaction → feedback.
 - Apply Keller's ARCS: hook with attention, build relevance, build confidence, deliver satisfaction.
-- Include a retrieval-practice quiz in the interaction card.
+- Include a retrieval-practice quiz in the interaction card AND a scenario decision exercise.
 
 OUTPUT FORMAT — respond with JSON only, no markdown:
 {
@@ -64,31 +64,36 @@ OUTPUT FORMAT — respond with JSON only, no markdown:
   "sourceCredit": "string — e.g. 'Harvard Business Review, by Amy Edmondson'",
   "coreCompetency": "string — exactly one of the 7 Vanderbilt core competencies",
   "coachPersona": {
-    "role": "string — who the reel's Coach chatbot is",
-    "expertise": "string — what the coach knows, grounded in this reel's source",
+    "role": "string",
+    "expertise": "string",
     "openingQuestion": "string — a concrete first question that references something from THIS reel",
     "guardrails": "string — stay on topic; refuse off-topic, DEI, health, drugs, abstract theory"
   },
   "estimatedSeconds": number,
   "cards": [
     {
-      "cardType": "hook" | "narration" | "interaction" | "feedback",
+      "cardType": "hook" | "narration" | "scenario" | "interaction" | "feedback",
       "title": "string",
-      "script": "string — 60-120 words, conversational",
-      "visualDescription": "string — what the visual should depict",
+      "script": "string — see card-specific format rules below",
+      "visualDescription": "string",
       "animationCue": "string — 'reveal' | 'diagram' | 'chart' | 'process' | 'comparison'",
       "quizJson": null | { "question": "string", "choices": ["a","b","c","d"], "correctIndex": number, "explanation": "string" },
+      "scenarioJson": null | { "situation": "string", "choices": [{"label":"string","feedback":"string"},{"label":"string","feedback":"string"},{"label":"string","feedback":"string"}], "debrief": "string" },
       "durationMs": number
     }
   ]
 }
 
-CARD RULES:
-1. First card MUST be type "hook" with a surprising fact, provocative question, or scenario from the source.
-2. Middle cards are "narration" and "interaction".
-3. At least one card MUST be "interaction" with quizJson.
-4. Last card MUST be "feedback" — key takeaway and source credit.
-5. Total cards: exactly 4.`;
+CARD RULES (exactly 5 cards in this order):
+1. Card 1 — "hook": Surprising fact, provocative question, or scenario from the source. 40-60 words.
+2. Card 2 — "narration": Core teaching. Script MUST use this exact structure:
+   **What** [Define the concept. 2-3 sentences.]
+   **Why** [Why it matters to the learner's work. 2-3 sentences. Generic for all staff.]
+   **How** [Concrete method to apply it. 2-3 sentences.]
+   Total: 120-180 words depending on Bloom's level.
+3. Card 3 — "scenario": A realistic Vanderbilt workplace "what would you do?" decision. scenarioJson required with 3 plausible choices (no obviously wrong answers), instructive feedback for each, and a debrief connecting back to the core concept. Scenarios must reference Vanderbilt departments, campus culture, or university workplace norms.
+4. Card 4 — "interaction": Quiz with quizJson, 4 choices, one correct.
+5. Card 5 — "feedback": Key takeaway. Script must end with: **Micro-Action:** [One specific thing the learner can do within 24 hours.]`;
 
 async function generateOneReel(
   topicLabel: string,
@@ -114,7 +119,7 @@ You MUST source content from a REAL, reliable online resource (HBR, MIT Sloan, M
 
 ${reelNumber > 1 ? `This is reel ${reelNumber} of ${totalCount}. Cover a DIFFERENT angle, source, and concept than previous reels in this series.` : "Pick the most foundational concept first."}
 
-Generate a complete 4-card reel: hook → narration → interaction → feedback.`;
+Generate a complete 5-card reel: hook → narration (What/Why/How) → scenario (Vanderbilt workplace decision) → interaction (quiz) → feedback (takeaway + micro-action).`;
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
@@ -239,6 +244,7 @@ export async function POST(request: NextRequest) {
               visualDescription: card.visualDescription || "",
               animationCue: card.animationCue || null,
               quizJson: card.quizJson ? JSON.stringify(card.quizJson) : null,
+              scenarioJson: card.scenarioJson ? JSON.stringify(card.scenarioJson) : null,
               durationMs: card.durationMs || 60000,
             },
           });

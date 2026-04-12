@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import type { ReelData, ReelCardData } from "./ReelFeed";
 import HookCard from "./cards/HookCard";
 import NarrationCard from "./cards/NarrationCard";
+import ScenarioCard from "./cards/ScenarioCard";
 import InteractionCard from "./cards/InteractionCard";
 import FeedbackCard from "./cards/FeedbackCard";
 import {
@@ -152,6 +153,13 @@ export default function ReelView({ reel, isActive }: Props) {
         return <HookCard {...props} reelTitle={reel.title} />;
       case "narration":
         return <NarrationCard {...props} />;
+      case "scenario":
+        return (
+          <ScenarioCard
+            {...props}
+            onAnswer={(answer) => handleAnswer(card.id, answer)}
+          />
+        );
       case "interaction":
         return (
           <InteractionCard
@@ -447,7 +455,7 @@ export default function ReelView({ reel, isActive }: Props) {
             ))}
           </div>
 
-          {currentCard.cardType !== "interaction" || answers[currentCard.id] ? (
+          {(currentCard.cardType !== "interaction" && currentCard.cardType !== "scenario") || answers[currentCard.id] ? (
             <button
               onClick={nextCard}
               className="flex items-center gap-1 px-4 py-2.5 rounded-xl text-sm font-condensed uppercase tracking-wider bg-vand-gold text-vand-black font-bold active:bg-vand-highlight transition-all"

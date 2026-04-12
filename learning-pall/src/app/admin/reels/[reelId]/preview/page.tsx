@@ -38,13 +38,14 @@ export default async function ReelPreviewPage({
     cards: reel.cards.map((c) => ({
       id: c.id,
       order: c.order,
-      cardType: c.cardType as "hook" | "narration" | "interaction" | "feedback",
+      cardType: c.cardType as "hook" | "narration" | "scenario" | "interaction" | "feedback",
       title: c.title,
       script: c.script,
       visualDescription: c.visualDescription,
       imageUrl: c.imageUrl,
       animationCue: c.animationCue,
       quizJson: c.quizJson,
+      scenarioJson: c.scenarioJson,
       durationMs: c.durationMs,
     })),
   };

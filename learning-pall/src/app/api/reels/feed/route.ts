@@ -171,6 +171,7 @@ export async function GET(request: NextRequest) {
       imageUrl: card.imageUrl,
       animationCue: card.animationCue,
       quizJson: card.quizJson,
+      scenarioJson: card.scenarioJson,
       durationMs: card.durationMs,
     })),
   }));

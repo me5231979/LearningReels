@@ -123,13 +123,14 @@ model ReelCard {
   id                String  @id @default(cuid())
   reelId            String
   order             Int
-  cardType          String  // hook | narration | interaction | feedback
+  cardType          String  // hook | narration | scenario | interaction | feedback
   title             String
   script            String  // Text for TTS narration
   visualDescription String  // Prompt for image generation
   imageUrl          String? // Generated image URL (async populated)
   animationCue      String? // Lottie template name or GSAP directive
   quizJson          String? // JSON: { question, choices[], correctIndex, explanation }
+  scenarioJson      String? // JSON: { situation, choices[{label,feedback}], debrief }
   durationMs        Int
 
   reel LearningReel @relation(fields: [reelId], references: [id], onDelete: Cascade)

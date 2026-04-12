@@ -8,13 +8,14 @@ import Link from "next/link";
 export type ReelCardData = {
   id: string;
   order: number;
-  cardType: "hook" | "narration" | "interaction" | "feedback";
+  cardType: "hook" | "narration" | "scenario" | "interaction" | "feedback";
   title: string;
   script: string;
   visualDescription: string;
   imageUrl: string | null;
   animationCue: string | null;
   quizJson: string | null;
+  scenarioJson: string | null;
   durationMs: number;
 };
 

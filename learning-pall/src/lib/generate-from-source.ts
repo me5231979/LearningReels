@@ -98,6 +98,7 @@ export async function generateReelFromSource(
       visualDescription?: string;
       animationCue?: string | null;
       quizJson?: unknown;
+      scenarioJson?: unknown;
       durationMs?: number;
     }>;
   };
@@ -161,6 +162,7 @@ export async function generateReelFromSource(
         visualDescription: card.visualDescription || "",
         animationCue: (card.animationCue as string) || null,
         quizJson: card.quizJson ? JSON.stringify(card.quizJson) : null,
+          scenarioJson: card.scenarioJson ? JSON.stringify(card.scenarioJson) : null,
         durationMs: card.durationMs || 60000,
       },
     });

@@ -13,7 +13,7 @@ type Props = {
 };
 
 export default function HookCard({ card, isActive, onNext, reelTitle }: Props) {
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [bgImage, setBgImage] = useState<string | null>(null);
 
   // Auto-advance after duration

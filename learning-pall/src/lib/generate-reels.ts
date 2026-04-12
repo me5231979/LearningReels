@@ -106,6 +106,7 @@ export async function generateReelsForTopic(
             visualDescription: card.visualDescription || "",
             animationCue: card.animationCue || null,
             quizJson: card.quizJson ? JSON.stringify(card.quizJson) : null,
+              scenarioJson: card.scenarioJson ? JSON.stringify(card.scenarioJson) : null,
             durationMs: card.durationMs || 60000,
           },
         });

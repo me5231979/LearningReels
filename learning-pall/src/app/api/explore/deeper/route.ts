@@ -32,7 +32,7 @@ VISUAL DESCRIPTION REQUIREMENTS:
 - Do NOT describe East Asian, Middle Eastern, South Asian, or non-Western elements.
 
 PEDAGOGICAL MODEL:
-- Each reel: 4 cards (hook → narration → interaction → feedback).
+- Each reel: exactly 5 cards (hook → narration → scenario → interaction → feedback).
 - Target Bloom's "analyze", "evaluate", or "create" levels.
 - Quiz questions test deep application, not recall.
 
@@ -44,18 +44,23 @@ OUTPUT JSON only, no markdown:
   "sourceCredit": "string",
   "coreCompetency": "string — one of the 7",
   "coachPersona": {
-    "role": "string — who the reel's Coach chatbot is",
-    "expertise": "string — what the coach knows, grounded in this reel's source",
+    "role": "string",
+    "expertise": "string",
     "openingQuestion": "string — a concrete first question referencing THIS reel",
     "guardrails": "string — stay on topic; refuse off-topic / DEI / health / abstract theory"
   },
   "estimatedSeconds": number,
   "cards": [
-    { "cardType": "hook"|"narration"|"interaction"|"feedback", "title": "string", "script": "string 60-120 words", "visualDescription": "string", "animationCue": "string", "quizJson": null | {"question":"string","choices":["a","b","c","d"],"correctIndex":number,"explanation":"string"}, "durationMs": number }
+    { "cardType": "hook"|"narration"|"scenario"|"interaction"|"feedback", "title": "string", "script": "string", "visualDescription": "string", "animationCue": "string", "quizJson": null | {"question":"string","choices":["a","b","c","d"],"correctIndex":number,"explanation":"string"}, "scenarioJson": null | {"situation":"string","choices":[{"label":"string","feedback":"string"},{"label":"string","feedback":"string"},{"label":"string","feedback":"string"}],"debrief":"string"}, "durationMs": number }
   ]
 }
 
-Exactly 4 cards. First = hook, last = feedback, at least one = interaction with quizJson.`;
+CARD RULES (exactly 5 cards in this order):
+1. Card 1 — "hook": Surprising fact or provocative question. 40-60 words.
+2. Card 2 — "narration": Script MUST use **What** / **Why** / **How** structure. 170-200 words for advanced levels.
+3. Card 3 — "scenario": Vanderbilt workplace "what would you do?" decision. scenarioJson with 3 plausible choices, feedback for each, and a debrief. No obviously wrong answers.
+4. Card 4 — "interaction": Quiz with quizJson, 4 choices, one correct. Test deep application.
+5. Card 5 — "feedback": Key takeaway. Script must end with **Micro-Action:** [one specific thing to do within 24 hours].`;
 
 export async function POST(request: NextRequest) {
   const session = await readSession();
@@ -88,7 +93,9 @@ CONTEXT: ${topic.description}
 
 This is reel ${i + 1} of ${TOTAL} in a deeper-dive series. The learner has already completed the foundational reels on this topic. Push into expert territory: nuance, edge cases, advanced frameworks, counterintuitive findings.
 
-Source from a real, reputable publication or research paper. Include the actual URL and author.`;
+Source from a real, reputable publication or research paper. Include the actual URL and author.
+
+Generate exactly 5 cards: hook → narration (What/Why/How) → scenario (Vanderbilt workplace decision) → interaction (quiz) → feedback (takeaway + micro-action).`;
 
         const response = await anthropic.messages.create({
           model: "claude-sonnet-4-20250514",
@@ -155,6 +162,7 @@ Source from a real, reputable publication or research paper. Include the actual 
               visualDescription: card.visualDescription || "",
               animationCue: card.animationCue || null,
               quizJson: card.quizJson ? JSON.stringify(card.quizJson) : null,
+              scenarioJson: card.scenarioJson ? JSON.stringify(card.scenarioJson) : null,
               durationMs: card.durationMs || 60000,
             },
           });
