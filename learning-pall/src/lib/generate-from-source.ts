@@ -15,6 +15,7 @@ import type { BloomsLevel } from "@/types/course";
 import { renderBrandedPdf } from "./pdf/branded";
 import { serializeTargetDepartments } from "./departments";
 import { serializeCoachPersona, type GeneratedCoachPersona } from "./coach";
+import { checkUrlAlive } from "./url-check";
 
 const UPLOADS_ROOT = path.join(process.cwd(), "public", "uploads");
 const SOURCES_DIR = path.join(UPLOADS_ROOT, "sources");
@@ -120,6 +121,16 @@ export async function generateReelFromSource(
     bloomLevel: input.bloomLevel,
   });
 
+  // Validate the source URL before persisting
+  const candidateUrl = input.originalUrl || reelData.sourceUrl || null;
+  let verifiedUrl: string | null = null;
+  if (candidateUrl) {
+    verifiedUrl = await checkUrlAlive(candidateUrl);
+    if (!verifiedUrl) {
+      console.warn(`[generate-from-source] dead sourceUrl for "${reelData.title}": ${candidateUrl}`);
+    }
+  }
+
   // Create the reel as DRAFT — admin must approve before learners see it.
   const reel = await prisma.learningReel.create({
     data: {
@@ -129,7 +140,7 @@ export async function generateReelFromSource(
       bloomLevel: input.bloomLevel,
       estimatedSeconds: reelData.estimatedSeconds || 240,
       contentJson: JSON.stringify(reelData),
-      sourceUrl: input.originalUrl || reelData.sourceUrl || null,
+      sourceUrl: verifiedUrl,
       sourceCredit: reelData.sourceCredit || null,
       coachPersona,
       targetDepartments: serializeTargetDepartments(input.targetDepartments),

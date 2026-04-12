@@ -6,6 +6,7 @@ import {
 } from "./prompts/reel-generation";
 import type { BloomsLevel } from "@/types/course";
 import { serializeCoachPersona, type GeneratedCoachPersona } from "./coach";
+import { checkUrlAlive } from "./url-check";
 
 export async function generateReelsForTopic(
   topicSlug: string,
@@ -69,6 +70,15 @@ export async function generateReelsForTopic(
         bloomLevel,
       });
 
+      // Validate AI-generated URL before persisting
+      let verifiedUrl: string | null = null;
+      if (reelData.sourceUrl) {
+        verifiedUrl = await checkUrlAlive(reelData.sourceUrl);
+        if (!verifiedUrl) {
+          console.warn(`[generate-reels] dead sourceUrl for "${reelData.title}": ${reelData.sourceUrl}`);
+        }
+      }
+
       const reel = await prisma.learningReel.create({
         data: {
           topicId: topic.id,
@@ -77,7 +87,7 @@ export async function generateReelsForTopic(
           bloomLevel,
           estimatedSeconds: reelData.estimatedSeconds || 240,
           contentJson: JSON.stringify(reelData),
-          sourceUrl: reelData.sourceUrl || null,
+          sourceUrl: verifiedUrl,
           sourceCredit: reelData.sourceCredit || null,
           coachPersona,
           status: "published",

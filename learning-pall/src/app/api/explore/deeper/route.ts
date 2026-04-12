@@ -3,6 +3,7 @@ import { readSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getAnthropicClient } from "@/lib/claude";
 import { serializeCoachPersona, type GeneratedCoachPersona } from "@/lib/coach";
+import { checkUrlAlive } from "@/lib/url-check";
 
 const SYSTEM_PROMPT = `You are a Vanderbilt University learning content architect creating ADVANCED Learning Reels for a learner who has completed the basics on a topic.
 
@@ -117,6 +118,15 @@ Source from a real, reputable publication or research paper. Include the actual 
           }
         );
 
+        // Validate AI-generated URL before persisting
+        let verifiedUrl: string | null = null;
+        if (reelData.sourceUrl) {
+          verifiedUrl = await checkUrlAlive(reelData.sourceUrl);
+          if (!verifiedUrl) {
+            console.warn(`[explore:deeper] dead sourceUrl for "${reelData.title}": ${reelData.sourceUrl}`);
+          }
+        }
+
         const reel = await prisma.learningReel.create({
           data: {
             topicId: topic.id,
@@ -127,7 +137,7 @@ Source from a real, reputable publication or research paper. Include the actual 
             contentJson: JSON.stringify(reelData),
             coachPersona,
             status: "published",
-            sourceUrl: reelData.sourceUrl || null,
+            sourceUrl: verifiedUrl,
             sourceCredit: reelData.sourceCredit || null,
             coreCompetency: reelData.coreCompetency || null,
           },

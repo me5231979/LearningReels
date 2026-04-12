@@ -3,6 +3,7 @@ import { readSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getAnthropicClient } from "@/lib/claude";
 import { serializeCoachPersona, type GeneratedCoachPersona } from "@/lib/coach";
+import { checkUrlAlive } from "@/lib/url-check";
 
 type BloomLevel = "remember" | "understand" | "apply" | "analyze" | "evaluate" | "create";
 // 3-reel sequence: foundational → application → analysis. Deeper levels are
@@ -200,6 +201,16 @@ export async function POST(request: NextRequest) {
           }
         );
 
+        // Validate the AI-generated sourceUrl before persisting — Claude
+        // frequently hallucinate URLs that return 404/403.
+        let verifiedUrl: string | null = null;
+        if (reelData.sourceUrl) {
+          verifiedUrl = await checkUrlAlive(reelData.sourceUrl);
+          if (!verifiedUrl) {
+            console.warn(`[explore:generate] dead sourceUrl for "${reelData.title}": ${reelData.sourceUrl}`);
+          }
+        }
+
         const reel = await prisma.learningReel.create({
           data: {
             topicId: topic.id,
@@ -210,7 +221,7 @@ export async function POST(request: NextRequest) {
             contentJson: JSON.stringify(reelData),
             coachPersona,
             status: "published",
-            sourceUrl: reelData.sourceUrl || null,
+            sourceUrl: verifiedUrl,
             sourceCredit: reelData.sourceCredit || null,
             coreCompetency: reelData.coreCompetency || null,
           },
