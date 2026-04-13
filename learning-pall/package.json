@@ -18,6 +18,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/html-to-text": "^9.0.4",
     "@types/web-push": "^3.6.4",
+    "@vercel/blob": "^2.3.3",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.8.0",
     "clsx": "^2.1.1",
