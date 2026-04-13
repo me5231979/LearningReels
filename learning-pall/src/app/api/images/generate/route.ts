@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readSession } from "@/lib/auth";
 import OpenAI from "openai";
+import { put } from "@vercel/blob";
 import { prisma } from "@/lib/db";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "placeholder" });
 
 /**
  * Generate an image for a card using DALL-E 3.
- * Stores the DALL-E URL directly in the DB (works on Vercel's read-only FS).
- * DALL-E URLs expire after ~1hr, so we check liveness and regenerate if needed.
+ * Uploads to Vercel Blob for permanent public storage (no expiration).
+ * Falls back to DALL-E URL if Blob token isn't configured.
  */
 export async function POST(request: NextRequest) {
   const session = await readSession();
@@ -25,21 +26,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // If cardId provided, check DB for an existing image that's still alive
+  // If cardId provided, check DB for an existing permanent image
   if (cardId) {
     const existing = await prisma.reelCard.findUnique({
       where: { id: cardId },
       select: { imageUrl: true },
     });
     if (existing?.imageUrl) {
-      // DALL-E URLs expire — verify it's still reachable
+      // Blob URLs are permanent — no liveness check needed
+      // Only re-check if it's an old DALL-E URL (they expire)
+      if (!existing.imageUrl.includes("oaidalleapi")) {
+        return NextResponse.json({ imageUrl: existing.imageUrl });
+      }
+      // DALL-E URL — check if still alive, otherwise regenerate
       try {
         const check = await fetch(existing.imageUrl, { method: "HEAD" });
         if (check.ok) {
           return NextResponse.json({ imageUrl: existing.imageUrl });
         }
       } catch {
-        // URL expired or unreachable — regenerate below
+        // expired — regenerate below
       }
     }
   }
@@ -56,15 +62,33 @@ export async function POST(request: NextRequest) {
       quality: "standard",
     });
 
-    const imageUrl = response.data[0]?.url;
-    if (!imageUrl) {
+    const dalleUrl = response.data[0]?.url;
+    if (!dalleUrl) {
       return NextResponse.json(
         { error: "No image generated" },
         { status: 500 }
       );
     }
 
-    // Save DALL-E URL to DB so it persists for the session
+    let imageUrl = dalleUrl;
+
+    // Upload to Vercel Blob for permanent storage (if token configured)
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      try {
+        const imageRes = await fetch(dalleUrl);
+        if (imageRes.ok) {
+          const buffer = Buffer.from(await imageRes.arrayBuffer());
+          const filename = `reel-images/${cardId || Date.now()}.png`;
+          const blob = await put(filename, buffer, { access: "public" });
+          imageUrl = blob.url;
+        }
+      } catch (blobErr) {
+        console.error("Blob upload failed, using DALL-E URL:", blobErr);
+        // Fall back to DALL-E URL (temporary but still works for ~1hr)
+      }
+    }
+
+    // Save permanent URL to DB
     if (cardId) {
       await prisma.reelCard.update({
         where: { id: cardId },
