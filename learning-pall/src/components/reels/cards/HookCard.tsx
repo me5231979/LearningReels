@@ -23,9 +23,10 @@ export default function HookCard({ card, isActive, onNext, reelTitle }: Props) {
     return () => clearTimeout(timerRef.current);
   }, [isActive, onNext, card.durationMs]);
 
-  // Generate a background image from the visual description — only for the
-  // active reel, so we don't saturate the dev server with hundreds of
-  // concurrent DALL-E requests (which blocks Next.js RSC navigation).
+  // Generate a background image from the visual description.
+  // Don't abort on unmount — let DALL-E finish so the URL is saved to DB
+  // for next time (generation takes 10-18s, longer than the hook card timer).
+  const imageRequested = useRef(false);
   useEffect(() => {
     if (card.imageUrl) {
       setBgImage(card.imageUrl);
@@ -33,8 +34,9 @@ export default function HookCard({ card, isActive, onNext, reelTitle }: Props) {
     }
     if (!card.visualDescription) return;
     if (!isActive) return;
+    if (imageRequested.current) return;
+    imageRequested.current = true;
 
-    const controller = new AbortController();
     fetch("/api/images/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -42,17 +44,12 @@ export default function HookCard({ card, isActive, onNext, reelTitle }: Props) {
         cardId: card.id,
         visualDescription: card.visualDescription,
       }),
-      signal: controller.signal,
     })
       .then((res) => res.json())
       .then((data) => {
         if (data.imageUrl) setBgImage(data.imageUrl);
       })
-      .catch((err) => {
-        if (err?.name !== "AbortError") console.error(err);
-      });
-
-    return () => controller.abort();
+      .catch(console.error);
   }, [card.imageUrl, card.visualDescription, card.id, isActive]);
 
   return (
