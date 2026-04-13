@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readSession } from "@/lib/auth";
 import OpenAI from "openai";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { prisma } from "@/lib/db";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "placeholder" });
 
-// cwd() may be the parent dir when running `next dev learning-pall`
-const GENERATED_DIR = path.join(process.cwd(), "learning-pall", "public", "generated");
-
 /**
  * Generate an image for a card using DALL-E 3.
- * Downloads the result to public/generated/ and saves the path to the DB
- * so it never needs to be regenerated.
+ * Stores the DALL-E URL directly in the DB (works on Vercel's read-only FS).
+ * DALL-E URLs expire after ~1hr, so we check liveness and regenerate if needed.
  */
 export async function POST(request: NextRequest) {
   const session = await readSession();
@@ -30,14 +25,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // If cardId provided, check DB first
+  // If cardId provided, check DB for an existing image that's still alive
   if (cardId) {
     const existing = await prisma.reelCard.findUnique({
       where: { id: cardId },
       select: { imageUrl: true },
     });
     if (existing?.imageUrl) {
-      return NextResponse.json({ imageUrl: existing.imageUrl });
+      // DALL-E URLs expire — verify it's still reachable
+      try {
+        const check = await fetch(existing.imageUrl, { method: "HEAD" });
+        if (check.ok) {
+          return NextResponse.json({ imageUrl: existing.imageUrl });
+        }
+      } catch {
+        // URL expired or unreachable — regenerate below
+      }
     }
   }
 
@@ -53,32 +56,15 @@ export async function POST(request: NextRequest) {
       quality: "standard",
     });
 
-    const dalleUrl = response.data[0]?.url;
-    if (!dalleUrl) {
+    const imageUrl = response.data[0]?.url;
+    if (!imageUrl) {
       return NextResponse.json(
         { error: "No image generated" },
         { status: 500 }
       );
     }
 
-    // Download the image and save locally
-    const imageRes = await fetch(dalleUrl);
-    if (!imageRes.ok) {
-      return NextResponse.json(
-        { error: "Failed to download image" },
-        { status: 502 }
-      );
-    }
-
-    const buffer = Buffer.from(await imageRes.arrayBuffer());
-    const filename = `${cardId || Date.now()}.png`;
-
-    await mkdir(GENERATED_DIR, { recursive: true });
-    await writeFile(path.join(GENERATED_DIR, filename), buffer);
-
-    const imageUrl = `/generated/${filename}`;
-
-    // Save to DB if cardId provided
+    // Save DALL-E URL to DB so it persists for the session
     if (cardId) {
       await prisma.reelCard.update({
         where: { id: cardId },
