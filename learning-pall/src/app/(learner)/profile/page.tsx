@@ -56,15 +56,17 @@ export default async function ProfilePage() {
       },
     },
   });
-  const coachConversations: CoachConversationView[] = coachRows.map((c) => ({
-    id: c.id,
-    reelId: c.reel.id,
-    reelTitle: c.reel.title,
-    topicLabel: c.reel.topic.label,
-    turnsUsed: c.turnsUsed,
-    updatedAt: c.updatedAt.toISOString(),
-    messages: parseCoachMessages(c.messages),
-  }));
+  const coachConversations: CoachConversationView[] = coachRows
+    .filter((c) => c.reel)
+    .map((c) => ({
+      id: c.id,
+      reelId: c.reel.id,
+      reelTitle: c.reel.title,
+      topicLabel: c.reel.topic?.label ?? "Unknown",
+      turnsUsed: c.turnsUsed,
+      updatedAt: c.updatedAt.toISOString(),
+      messages: parseCoachMessages(c.messages),
+    }));
 
   const completedCount = user.progress.length;
   const completedReelIds = user.progress.map((p) => p.reelId);
@@ -118,13 +120,15 @@ export default async function ProfilePage() {
       },
     },
   });
-  const favoriteReels = favRows.map((ur) => ({
-    id: ur.reel.id,
-    title: ur.reel.title,
-    summary: ur.reel.summary,
-    topicLabel: ur.reel.topic.label,
-    categorySlug: ur.reel.topic.category,
-  }));
+  const favoriteReels = favRows
+    .filter((ur) => ur.reel)
+    .map((ur) => ({
+      id: ur.reel.id,
+      title: ur.reel.title,
+      summary: ur.reel.summary,
+      topicLabel: ur.reel.topic?.label ?? "Unknown",
+      categorySlug: ur.reel.topic?.category ?? "unknown",
+    }));
 
   // Content reports with any admin response
   const reportRows = await prisma.contentReport.findMany({
@@ -140,8 +144,9 @@ export default async function ProfilePage() {
       },
     },
   });
+  const validReportRows = reportRows.filter((r) => r.reel);
   const resolverIds = Array.from(
-    new Set(reportRows.map((r) => r.resolvedById).filter((id): id is string => !!id))
+    new Set(validReportRows.map((r) => r.resolvedById).filter((id): id is string => !!id))
   );
   const resolvers = resolverIds.length
     ? await prisma.user.findMany({
@@ -150,7 +155,7 @@ export default async function ProfilePage() {
       })
     : [];
   const resolverName = new Map(resolvers.map((u) => [u.id, u.name]));
-  const myReports = reportRows.map((r) => ({
+  const myReports = validReportRows.map((r) => ({
     id: r.id,
     reason: r.reason,
     details: r.details,
@@ -161,12 +166,12 @@ export default async function ProfilePage() {
     resolverName: r.resolvedById ? resolverName.get(r.resolvedById) ?? null : null,
     reelId: r.reel.id,
     reelTitle: r.reel.title,
-    topicLabel: r.reel.topic.label,
-    categorySlug: r.reel.topic.category,
+    topicLabel: r.reel.topic?.label ?? "Unknown",
+    categorySlug: r.reel.topic?.category ?? "unknown",
   }));
 
   // Mark any unread resolutions as read now that the learner is viewing them
-  const unreadIds = reportRows
+  const unreadIds = validReportRows
     .filter((r) => r.resolution && r.resolvedAt && !r.resolutionReadAt)
     .map((r) => r.id);
   if (unreadIds.length > 0) {
