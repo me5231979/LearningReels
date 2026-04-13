@@ -2,7 +2,8 @@ import { defineConfig } from "prisma/config";
 import path from "path";
 import { readFileSync } from "fs";
 
-// Load DATABASE_URL from .env.local since Prisma CLI doesn't read it natively
+// Load DATABASE_URL — needed for db push / migrate commands.
+// Falls back gracefully during prisma generate (where URL is optional).
 function loadDatabaseUrl(): string {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
   for (const f of [".env.local", ".env"]) {
@@ -14,10 +15,13 @@ function loadDatabaseUrl(): string {
       }
     } catch {}
   }
-  throw new Error("DATABASE_URL not found in environment or .env files");
+  // Return empty string instead of throwing — prisma generate doesn't need it
+  return "";
 }
+
+const url = loadDatabaseUrl();
 
 export default defineConfig({
   schema: path.join(__dirname, "schema.prisma"),
-  datasource: { url: loadDatabaseUrl() },
+  ...(url ? { datasource: { url } } : {}),
 });
