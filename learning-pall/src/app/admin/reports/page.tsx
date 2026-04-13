@@ -51,25 +51,29 @@ export default async function ReportsPage() {
     : [];
   const resolverName = new Map(resolvers.map((u) => [u.id, u.name]));
 
+  // Filter out orphaned records (reel or user deleted)
+  const validReports = reports.filter((r) => r.reel && r.user);
+  const validThumbs = thumbs.filter((t) => t.reel && t.user);
+
   return (
     <ReportsClient
-      reports={reports.map((r) => ({
+      reports={validReports.map((r) => ({
         id: r.id,
         reason: r.reason,
         details: r.details,
         status: r.status,
         createdAt: r.createdAt.toISOString(),
         user: r.user,
-        reel: { id: r.reel.id, title: r.reel.title, topic: r.reel.topic.label },
+        reel: { id: r.reel.id, title: r.reel.title, topic: r.reel.topic?.label ?? "Unknown" },
         resolution: r.resolution,
         resolvedAt: r.resolvedAt ? r.resolvedAt.toISOString() : null,
         resolverName: r.resolvedById ? resolverName.get(r.resolvedById) ?? null : null,
       }))}
-      thumbs={thumbs.map((t) => ({
+      thumbs={validThumbs.map((t) => ({
         id: t.id,
         updatedAt: t.updatedAt.toISOString(),
         user: t.user,
-        reel: { id: t.reel.id, title: t.reel.title, topic: t.reel.topic.label },
+        reel: { id: t.reel.id, title: t.reel.title, topic: t.reel.topic?.label ?? "Unknown" },
       }))}
     />
   );

@@ -27,7 +27,8 @@ async function getRecentThumbsDown(limit = 6) {
       reel: { select: { id: true, title: true, topicId: true } },
     },
   });
-  return rows;
+  // Filter out orphaned reactions (reel deleted)
+  return rows.filter((r) => r.reel && r.user);
 }
 
 async function getDashboardUsers(limit = 25): Promise<DashboardUser[]> {
@@ -74,7 +75,7 @@ async function getDashboardUsers(limit = 25): Promise<DashboardUser[]> {
 }
 
 async function getRecentReports(limit = 6) {
-  return prisma.contentReport.findMany({
+  const rows = await prisma.contentReport.findMany({
     where: { status: "open" },
     orderBy: { createdAt: "desc" },
     take: limit,
@@ -83,6 +84,8 @@ async function getRecentReports(limit = 6) {
       reel: { select: { id: true, title: true } },
     },
   });
+  // Filter out orphaned reports (reel deleted)
+  return rows.filter((r) => r.reel && r.user);
 }
 
 export default async function AdminDashboardPage() {
