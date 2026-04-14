@@ -1,5 +1,5 @@
 /**
- * URL → text + PDF snapshot. Used by the URL ingest path.
+ * URL → text snapshot. Used by the URL ingest path.
  *
  * Uses fetch + html-to-text instead of Puppeteer so it works on
  * Vercel's serverless environment (no Chrome binary needed).
@@ -20,7 +20,7 @@ export async function ingestUrl(url: string): Promise<UrlIngestResult> {
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     },
     redirect: "follow",
-    signal: AbortSignal.timeout(30000),
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (!res.ok) {
@@ -51,6 +51,6 @@ export async function ingestUrl(url: string): Promise<UrlIngestResult> {
     ],
   });
 
-  // No PDF snapshot in serverless — the branded PDF is generated separately
+  // No PDF snapshot in serverless — return null
   return { title, text: text.trim(), pdfBuffer: null };
 }

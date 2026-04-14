@@ -334,7 +334,7 @@ async function runBulkJob(job: BulkJob, topicDescription: string) {
     }
     touch(job, { items });
 
-    // 3. Generate (sequential — puppeteer + Claude is heavy)
+    // 3. Generate (sequential — scraping + Claude is heavy)
     touch(job, { phase: "generating", message: "Generating reels…" });
     let made = 0;
     for (let i = 0; i < items.length && made < job.count; i++) {
