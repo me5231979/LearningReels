@@ -33,7 +33,6 @@
     "next": "16.2.1",
     "openai": "^6.34.0",
     "pdf-parse": "^2.4.5",
-    "puppeteer": "^24.40.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "resend": "^6.10.0",

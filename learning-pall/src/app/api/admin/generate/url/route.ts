@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       sourceLabel: url,
       generatedById: me.id,
       generatedByName: me.name,
-      snapshotPdfBuffer: ingest.pdfBuffer,
+      snapshotPdfBuffer: ingest.pdfBuffer ?? undefined,
       originalUrl: url,
       targetDepartments: Array.isArray(targetDepartments)
         ? targetDepartments.filter((d: unknown): d is string => typeof d === "string")
