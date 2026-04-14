@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import type { ReelCardData } from "../ReelFeed";
 import { motion } from "framer-motion";
 import { useTTS } from "@/hooks/useTTS";
@@ -67,10 +67,13 @@ export default function NarrationCard({ card, isActive }: Props) {
     };
   }, [isActive, ttsText, speak, stop]);
 
-  // Generate image if none exists
+  // Generate image if none exists — no AbortController so DALL-E requests
+  // complete in background even after user swipes to next card (10-18s generation)
+  const imageRequested = useRef(false);
   useEffect(() => {
     if (imageUrl || !card.visualDescription) return;
     if (!isActive) return;
+    if (imageRequested.current) return;
 
     const cached = imageUrlCache.get(card.id);
     if (cached) {
@@ -78,12 +81,11 @@ export default function NarrationCard({ card, isActive }: Props) {
       return;
     }
 
-    const controller = new AbortController();
+    imageRequested.current = true;
     fetch("/api/images/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cardId: card.id, visualDescription: card.visualDescription }),
-      signal: controller.signal,
     })
       .then((res) => res.json())
       .then((data) => {
@@ -93,10 +95,8 @@ export default function NarrationCard({ card, isActive }: Props) {
         }
       })
       .catch((err) => {
-        if (err?.name !== "AbortError") console.error(err);
+        console.error("Image generation failed:", err);
       });
-
-    return () => controller.abort();
   }, [card.id, card.visualDescription, imageUrl, isActive]);
 
   return (
