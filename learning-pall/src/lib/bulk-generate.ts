@@ -4,8 +4,8 @@
  * against existing reels in the same topic, and generate N draft reels
  * (one per article) for admin review.
  *
- * Job state lives in module-scope (single-process dev). On a real prod
- * deployment behind multiple workers we would persist this to the DB.
+ * Job state is persisted to the BackgroundJob table so it survives
+ * function recycling on Vercel and navigation away from the page.
  */
 import { randomUUID } from "crypto";
 import { prisma } from "./db";
@@ -40,8 +40,7 @@ export type BulkJobPhase =
   | "done"
   | "failed";
 
-export type BulkJob = {
-  id: string;
+export type BulkJobData = {
   topicId: string;
   topicLabel: string;
   targetDepartments: string[];
@@ -49,33 +48,89 @@ export type BulkJob = {
   bloomLevel: BloomsLevel;
   adminId: string;
   adminName: string;
-  phase: BulkJobPhase;
-  message: string;
-  items: BulkJobItem[];
-  createdAt: number;
-  updatedAt: number;
-  error?: string;
+  topicDescription: string;
 };
 
-// Survives Next.js HMR — module-scope state resets on every edit, so we
-// pin the jobs map to globalThis. Safe in dev; in prod each worker keeps
-// its own copy (acceptable for an MVP admin tool).
-const globalForJobs = globalThis as unknown as { __bulkJobs?: Map<string, BulkJob> };
-const jobs: Map<string, BulkJob> =
-  globalForJobs.__bulkJobs ?? (globalForJobs.__bulkJobs = new Map());
+export type BulkJobView = {
+  id: string;
+  phase: BulkJobPhase;
+  message: string;
+  topicLabel: string;
+  count: number;
+  items: BulkJobItem[];
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
-function touch(job: BulkJob, patch: Partial<BulkJob>) {
-  Object.assign(job, patch, { updatedAt: Date.now() });
+// ─── DB helpers ────────────────────────────────────────────
+
+async function saveJob(
+  id: string,
+  patch: {
+    phase?: string;
+    status?: string;
+    message?: string;
+    items?: BulkJobItem[];
+    error?: string;
+  }
+) {
+  const updateData: Record<string, unknown> = { updatedAt: new Date() };
+  if (patch.phase !== undefined) updateData.phase = patch.phase;
+  if (patch.status !== undefined) updateData.status = patch.status;
+  if (patch.message !== undefined) updateData.message = patch.message;
+  if (patch.items !== undefined) updateData.items = JSON.stringify(patch.items);
+  if (patch.error !== undefined) updateData.error = patch.error;
+
+  await prisma.backgroundJob.update({ where: { id }, data: updateData });
 }
 
-export function getBulkJob(id: string): BulkJob | null {
-  return jobs.get(id) ?? null;
+export async function getBulkJob(id: string): Promise<BulkJobView | null> {
+  const row = await prisma.backgroundJob.findUnique({ where: { id } });
+  if (!row || row.type !== "bulk_generate") return null;
+
+  const data = JSON.parse(row.data) as BulkJobData;
+  const items = JSON.parse(row.items) as BulkJobItem[];
+
+  return {
+    id: row.id,
+    phase: row.phase as BulkJobPhase,
+    message: row.message,
+    topicLabel: data.topicLabel,
+    count: data.count,
+    items,
+    error: row.error ?? undefined,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
 }
 
-/**
- * Normalize a URL for dedupe: lowercase host, strip trailing slash and
- * tracking params (utm_*, gclid, etc).
- */
+/** Get the most recent running or recently-finished bulk job for an admin. */
+export async function getLatestBulkJob(adminId: string): Promise<BulkJobView | null> {
+  const row = await prisma.backgroundJob.findFirst({
+    where: { createdById: adminId, type: "bulk_generate" },
+    orderBy: { updatedAt: "desc" },
+  });
+  if (!row) return null;
+
+  const data = JSON.parse(row.data) as BulkJobData;
+  const items = JSON.parse(row.items) as BulkJobItem[];
+
+  return {
+    id: row.id,
+    phase: row.phase as BulkJobPhase,
+    message: row.message,
+    topicLabel: data.topicLabel,
+    count: data.count,
+    items,
+    error: row.error ?? undefined,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+// ─── URL normalization & dedupe helpers ────────────────────
+
 function normalizeUrl(raw: string): string {
   try {
     const u = new URL(raw);
@@ -106,9 +161,6 @@ function fuzzyTitleKey(title: string): string {
 
 type Candidate = { url: string; title: string; publication: string | null };
 
-// Domains that Anthropic's web_search crawler is permitted to access AND that
-// publish substantive practitioner-oriented content. Some otherwise reputable
-// publishers (e.g. forbes.com) block Anthropic's user agent and must be excluded.
 const REPUTABLE_DOMAINS = [
   "hbr.org",
   "sloanreview.mit.edu",
@@ -134,10 +186,8 @@ const REPUTABLE_DOMAINS = [
   "td.org",
 ];
 
-/**
- * Ask Claude to use web_search to find N recent, reputable articles for the
- * given topic + audience. Returns a parsed JSON array of candidates.
- */
+// ─── Discovery via Claude web_search ───────────────────────
+
 async function discoverCandidates(
   topicLabel: string,
   topicDescription: string,
@@ -148,9 +198,7 @@ async function discoverCandidates(
 
   const audienceLine =
     targetDepartments.length > 0
-      ? `Audience: Vanderbilt University staff in these departments — ${targetDepartments.join(
-          ", "
-        )}.`
+      ? `Audience: Vanderbilt University staff in these departments — ${targetDepartments.join(", ")}.`
       : "Audience: All Vanderbilt University staff.";
 
   const userPrompt = `You are a Vanderbilt University learning content scout. Use web_search to find ${
@@ -193,7 +241,6 @@ Return at least ${count} candidates if you can find enough quality matches. The 
     messages: [{ role: "user", content: userPrompt }],
   });
 
-  // Find the final text block — that's where the JSON lives.
   const textBlocks = response.content.filter(
     (b): b is Extract<typeof b, { type: "text" }> => b.type === "text"
   );
@@ -227,10 +274,6 @@ Return at least ${count} candidates if you can find enough quality matches. The 
   return out;
 }
 
-/**
- * Returns a Set of normalized URL keys + a Set of fuzzy title keys for all
- * existing reels in the given topic. Used to dedupe new candidates.
- */
 async function buildDedupeIndex(
   topicId: string
 ): Promise<{ urls: Set<string>; titles: Set<string> }> {
@@ -247,6 +290,8 @@ async function buildDedupeIndex(
   return { urls, titles };
 }
 
+// ─── Public API ────────────────────────────────────────────
+
 export type StartBulkJobInput = {
   topicId: string;
   bloomLevel: BloomsLevel;
@@ -256,14 +301,12 @@ export type StartBulkJobInput = {
   adminName: string;
 };
 
-export async function startBulkJob(input: StartBulkJobInput): Promise<BulkJob> {
+export async function startBulkJob(input: StartBulkJobInput): Promise<{ jobId: string }> {
   const topic = await prisma.topic.findUnique({ where: { id: input.topicId } });
   if (!topic) throw new Error("Topic not found");
 
   const id = randomUUID();
-  const now = Date.now();
-  const job: BulkJob = {
-    id,
+  const jobData: BulkJobData = {
     topicId: topic.id,
     topicLabel: topic.label,
     targetDepartments: input.targetDepartments,
@@ -271,33 +314,47 @@ export async function startBulkJob(input: StartBulkJobInput): Promise<BulkJob> {
     bloomLevel: input.bloomLevel,
     adminId: input.adminId,
     adminName: input.adminName,
-    phase: "queued",
-    message: "Job queued",
-    items: [],
-    createdAt: now,
-    updatedAt: now,
+    topicDescription: topic.description,
   };
-  jobs.set(id, job);
 
-  // Fire-and-forget background runner.
-  void runBulkJob(job, topic.description);
+  await prisma.backgroundJob.create({
+    data: {
+      id,
+      type: "bulk_generate",
+      status: "running",
+      phase: "queued",
+      message: "Job queued",
+      data: JSON.stringify(jobData),
+      items: "[]",
+      createdById: input.adminId,
+    },
+  });
 
-  return job;
+  // Fire-and-forget — the job saves its own progress to the DB.
+  void runBulkJob(id, jobData);
+
+  return { jobId: id };
 }
 
-async function runBulkJob(job: BulkJob, topicDescription: string) {
+// ─── Background runner ─────────────────────────────────────
+
+async function runBulkJob(jobId: string, jobData: BulkJobData) {
   try {
     // 1. Discovery
-    touch(job, { phase: "discovering", message: "Searching the web for relevant articles…" });
+    await saveJob(jobId, {
+      phase: "discovering",
+      message: "Searching the web for relevant articles…",
+    });
     const candidates = await discoverCandidates(
-      job.topicLabel,
-      topicDescription,
-      job.targetDepartments,
-      job.count
+      jobData.topicLabel,
+      jobData.topicDescription,
+      jobData.targetDepartments,
+      jobData.count
     );
     if (candidates.length === 0) {
-      touch(job, {
+      await saveJob(jobId, {
         phase: "failed",
+        status: "failed",
         message: "Web search did not return any usable candidates.",
         error: "no_candidates",
       });
@@ -305,11 +362,11 @@ async function runBulkJob(job: BulkJob, topicDescription: string) {
     }
 
     // 2. Dedupe
-    touch(job, {
+    await saveJob(jobId, {
       phase: "deduping",
       message: `Found ${candidates.length} candidates. Removing duplicates…`,
     });
-    const dedupe = await buildDedupeIndex(job.topicId);
+    const dedupe = await buildDedupeIndex(jobData.topicId);
     const seenInJobUrls = new Set<string>();
     const seenInJobTitles = new Set<string>();
     const items: BulkJobItem[] = [];
@@ -332,19 +389,24 @@ async function runBulkJob(job: BulkJob, topicDescription: string) {
         seenInJobTitles.add(titleKey);
       }
     }
-    touch(job, { items });
+    await saveJob(jobId, { items });
 
-    // 3. Generate (sequential — scraping + Claude is heavy)
-    touch(job, { phase: "generating", message: "Generating reels…" });
+    // 3. Generate reels one-by-one, saving progress after each
+    await saveJob(jobId, {
+      phase: "generating",
+      message: "Generating reels…",
+      items,
+    });
     let made = 0;
-    for (let i = 0; i < items.length && made < job.count; i++) {
+    for (let i = 0; i < items.length && made < jobData.count; i++) {
       const item = items[i];
       if (item.status !== "pending") continue;
 
-      // mark scraping
+      // Scrape
       item.status = "scraping";
-      touch(job, {
-        message: `Scraping (${made + 1}/${job.count}): ${item.title.slice(0, 60)}`,
+      await saveJob(jobId, {
+        message: `Scraping (${made + 1}/${jobData.count}): ${item.title.slice(0, 60)}`,
+        items,
       });
 
       let ingest;
@@ -353,35 +415,36 @@ async function runBulkJob(job: BulkJob, topicDescription: string) {
       } catch (e) {
         item.status = "failed";
         item.error = `Scrape failed: ${(e as Error).message}`;
-        touch(job, {});
+        await saveJob(jobId, { items });
         continue;
       }
       if (!ingest.text || ingest.text.length < 400) {
         item.status = "failed";
         item.error = "Page text too short (likely paywalled)";
-        touch(job, {});
+        await saveJob(jobId, { items });
         continue;
       }
 
-      // mark generating
+      // Generate reel
       item.status = "generating";
-      touch(job, {
-        message: `Generating reel (${made + 1}/${job.count}): ${item.title.slice(0, 60)}`,
+      await saveJob(jobId, {
+        message: `Generating reel (${made + 1}/${jobData.count}): ${item.title.slice(0, 60)}`,
+        items,
       });
 
       try {
         const result = await generateReelFromSource({
-          topicId: job.topicId,
-          bloomLevel: job.bloomLevel,
+          topicId: jobData.topicId,
+          bloomLevel: jobData.bloomLevel,
           body: ingest.text,
           titleHint: item.title || ingest.title,
           sourceType: "url",
           sourceLabel: item.url,
-          generatedById: job.adminId,
-          generatedByName: job.adminName,
-          snapshotPdfBuffer: ingest.pdfBuffer,
+          generatedById: jobData.adminId,
+          generatedByName: jobData.adminName,
+          snapshotPdfBuffer: ingest.pdfBuffer ?? undefined,
           originalUrl: item.url,
-          targetDepartments: job.targetDepartments,
+          targetDepartments: jobData.targetDepartments,
         });
         item.status = "done";
         item.reelId = result.reelId;
@@ -391,18 +454,22 @@ async function runBulkJob(job: BulkJob, topicDescription: string) {
         item.status = "failed";
         item.error = `Generate failed: ${(e as Error).message}`;
       }
-      touch(job, {});
+      // Save after every reel — progress persists even if function dies
+      await saveJob(jobId, { items });
     }
 
-    touch(job, {
+    await saveJob(jobId, {
       phase: "done",
+      status: "done",
       message: `Created ${made} draft reel${made === 1 ? "" : "s"}. Review and publish in the Reels Library.`,
+      items,
     });
   } catch (e) {
-    touch(job, {
+    await saveJob(jobId, {
       phase: "failed",
+      status: "failed",
       message: `Bulk job failed: ${(e as Error).message}`,
       error: (e as Error).message,
-    });
+    }).catch(() => {}); // don't throw from error handler
   }
 }

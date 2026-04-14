@@ -23,5 +23,5 @@ const url = loadDatabaseUrl();
 
 export default defineConfig({
   schema: path.join(__dirname, "schema.prisma"),
-  ...(url ? { datasource: { url } } : {}),
+  datasource: { url: url || "postgresql://localhost:5432/placeholder" },
 });

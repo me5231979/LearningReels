@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { startBulkJob, getBulkJob } from "@/lib/bulk-generate";
+import { startBulkJob, getBulkJob, getLatestBulkJob } from "@/lib/bulk-generate";
 import type { BloomsLevel } from "@/types/course";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 600;
+export const maxDuration = 300;
 
 const ALLOWED_BLOOM: BloomsLevel[] = [
   "remember",
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   const count = Math.max(1, Math.min(15, Number(body.count) || 10));
 
   try {
-    const job = await startBulkJob({
+    const { jobId } = await startBulkJob({
       topicId: body.topicId,
       bloomLevel: body.bloomLevel as BloomsLevel,
       targetDepartments,
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       adminId: me.id,
       adminName: me.name,
     });
-    return NextResponse.json({ jobId: job.id });
+    return NextResponse.json({ jobId });
   } catch (e) {
     return NextResponse.json(
       { error: (e as Error).message || "Failed to start bulk job" },
@@ -67,24 +67,23 @@ export async function GET(req: NextRequest) {
   if (!me) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const jobId = req.nextUrl.searchParams.get("jobId");
+  const latest = req.nextUrl.searchParams.get("latest");
+
+  // If ?latest=true, return the most recent job for this admin
+  if (latest === "true") {
+    const job = await getLatestBulkJob(me.id);
+    if (!job) return NextResponse.json(null);
+    return NextResponse.json(job);
+  }
+
   if (!jobId) {
     return NextResponse.json({ error: "jobId required" }, { status: 400 });
   }
 
-  const job = getBulkJob(jobId);
+  const job = await getBulkJob(jobId);
   if (!job) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  return NextResponse.json({
-    id: job.id,
-    phase: job.phase,
-    message: job.message,
-    topicLabel: job.topicLabel,
-    count: job.count,
-    items: job.items,
-    error: job.error,
-    createdAt: job.createdAt,
-    updatedAt: job.updatedAt,
-  });
+  return NextResponse.json(job);
 }

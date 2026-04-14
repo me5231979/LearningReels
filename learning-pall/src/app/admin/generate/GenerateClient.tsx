@@ -43,6 +43,8 @@ type BulkJobState = {
   count: number;
   items: BulkItem[];
   error?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export default function GenerateClient({ topics }: { topics: Topic[] }) {
@@ -65,6 +67,39 @@ export default function GenerateClient({ topics }: { topics: Topic[] }) {
   const [bulkCount, setBulkCount] = useState(10);
   const [bulkJob, setBulkJob] = useState<BulkJobState | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recoveredRef = useRef(false);
+
+  // On mount: recover any in-progress bulk job from the server
+  useEffect(() => {
+    if (recoveredRef.current) return;
+    recoveredRef.current = true;
+
+    // Check localStorage for a recent job ID first
+    const savedJobId = typeof window !== "undefined"
+      ? localStorage.getItem("bulk_job_id")
+      : null;
+
+    const recoverUrl = savedJobId
+      ? `/api/admin/generate/bulk?jobId=${savedJobId}`
+      : "/api/admin/generate/bulk?latest=true";
+
+    fetch(recoverUrl)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: BulkJobState | null) => {
+        if (data && data.id && data.phase !== "done" && data.phase !== "failed") {
+          setBulkJob(data);
+          setMode("bulk");
+        } else if (data && data.id && (data.phase === "done" || data.phase === "failed")) {
+          // Show the completed/failed job so user sees results
+          const age = Date.now() - new Date(data.updatedAt || 0).getTime();
+          if (age < 30 * 60 * 1000) { // within last 30 minutes
+            setBulkJob(data);
+            setMode("bulk");
+          }
+        }
+      })
+      .catch(() => {}); // ignore — user hasn't started a job
+  }, []);
 
   // Poll the bulk job until it terminates
   useEffect(() => {
@@ -118,6 +153,10 @@ export default function GenerateClient({ topics }: { topics: Topic[] }) {
         return;
       }
       const data = await res.json();
+      // Persist job ID to localStorage for recovery after navigation
+      if (typeof window !== "undefined") {
+        localStorage.setItem("bulk_job_id", data.jobId);
+      }
       // Seed initial state; the poll loop will pick it up.
       setBulkJob({
         id: data.jobId,
