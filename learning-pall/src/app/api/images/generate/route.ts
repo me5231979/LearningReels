@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { aiRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { readSession } from "@/lib/auth";
 import OpenAI from "openai";
 import { put } from "@vercel/blob";
@@ -16,37 +17,54 @@ export async function POST(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
-
-  const { cardId, visualDescription } = await request.json();
-
-  if (!visualDescription || typeof visualDescription !== "string") {
-    return NextResponse.json(
-      { error: "Missing visualDescription" },
-      { status: 400 }
-    );
+  if (!aiRateLimit(session.uid, "image")) {
+    return tooManyRequests();
   }
 
-  // If cardId provided, check DB for an existing permanent image
-  if (cardId) {
-    const existing = await prisma.reelCard.findUnique({
-      where: { id: cardId },
-      select: { imageUrl: true },
-    });
-    if (existing?.imageUrl) {
-      // Blob URLs are permanent — no liveness check needed
-      // Only re-check if it's an old DALL-E URL (they expire)
-      if (!existing.imageUrl.includes("oaidalleapi")) {
-        return NextResponse.json({ imageUrl: existing.imageUrl });
+  const { cardId } = await request.json();
+
+  // Images are only generated for an existing card, from the card's own
+  // stored description. The client's text is ignored so nobody can attach
+  // an arbitrary image to someone else's card.
+  if (!cardId || typeof cardId !== "string") {
+    return NextResponse.json({ error: "Missing cardId" }, { status: 400 });
+  }
+
+  const card = await prisma.reelCard.findUnique({
+    where: { id: cardId },
+    select: {
+      imageUrl: true,
+      visualDescription: true,
+      reel: { select: { topic: { select: { isCustom: true, userId: true } } } },
+    },
+  });
+  if (!card) {
+    return NextResponse.json({ error: "Card not found" }, { status: 404 });
+  }
+  const topic = card.reel.topic;
+  if (topic.isCustom && topic.userId !== session.uid) {
+    return NextResponse.json({ error: "Card not found" }, { status: 404 });
+  }
+  const visualDescription = card.visualDescription;
+  if (!visualDescription) {
+    return NextResponse.json({ error: "Card has no visual description" }, { status: 400 });
+  }
+
+  const existingUrl = card.imageUrl;
+  if (existingUrl) {
+    // Blob URLs are permanent — no liveness check needed
+    // Only re-check if it's an old DALL-E URL (they expire)
+    if (!existingUrl.includes("oaidalleapi")) {
+      return NextResponse.json({ imageUrl: existingUrl });
+    }
+    // DALL-E URL — check if still alive, otherwise regenerate
+    try {
+      const check = await fetch(existingUrl, { method: "HEAD" });
+      if (check.ok) {
+        return NextResponse.json({ imageUrl: existingUrl });
       }
-      // DALL-E URL — check if still alive, otherwise regenerate
-      try {
-        const check = await fetch(existing.imageUrl, { method: "HEAD" });
-        if (check.ok) {
-          return NextResponse.json({ imageUrl: existing.imageUrl });
-        }
-      } catch {
-        // expired — regenerate below
-      }
+    } catch {
+      // expired — regenerate below
     }
   }
 

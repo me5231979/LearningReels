@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { getAuthSecret } from "@/lib/auth-secret";
 
-const SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || "lr-dev-secret-change-in-production"
-);
 const COOKIE = "lr_session";
 
 const PUBLIC_PATHS = [
@@ -37,7 +35,7 @@ export async function proxy(request: NextRequest) {
 
   if (token) {
     try {
-      const { payload } = await jwtVerify(token, SECRET);
+      const { payload } = await jwtVerify(token, getAuthSecret());
       session = payload as unknown as { uid: string; role: string };
     } catch {
       // Invalid token — clear and redirect

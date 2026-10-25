@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAnthropicClient } from "@/lib/claude";
+import { readSession } from "@/lib/auth";
+import { aiRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { buildEvaluationPrompt } from "@/lib/prompts/evaluation";
 
 export async function POST(request: NextRequest) {
+  const session = await readSession();
+  if (!session) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+  if (!aiRateLimit(session.uid, "text")) {
+    return tooManyRequests();
+  }
+
   try {
     const { questions, answers, bloomsLevel, difficulty } =
       await request.json();

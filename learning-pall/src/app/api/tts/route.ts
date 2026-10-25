@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { aiRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { readSession } from "@/lib/auth";
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "";
@@ -9,6 +10,9 @@ export async function POST(request: NextRequest) {
   const session = await readSession();
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+  if (!aiRateLimit(session.uid, "tts")) {
+    return tooManyRequests();
   }
 
   if (!ELEVENLABS_API_KEY) {

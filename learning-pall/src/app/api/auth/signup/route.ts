@@ -1,11 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { hashPassword, signSession, setSessionCookie, type Role } from "@/lib/auth";
+import { hashPassword } from "@/lib/auth";
 import { isValidDepartment } from "@/lib/departments";
+import { sendVerificationEmail, VERIFY_TTL_HOURS } from "@/lib/email-verification";
+import { rateLimit, tooManyRequests, clientIp } from "@/lib/rate-limit";
 
 const VANDERBILT_DOMAIN = "@vanderbilt.edu";
 
+function verifyPendingResponse(email: string) {
+  return NextResponse.json({
+    pending: true,
+    title: "Check your email",
+    message: `We sent a confirmation link to ${email}. Open it within ${VERIFY_TTL_HOURS} hours to activate your account.`,
+  });
+}
+
 export async function POST(request: NextRequest) {
+  if (!rateLimit(`signup:${clientIp(request)}`, 10, 60 * 60 * 1000)) {
+    return tooManyRequests();
+  }
+
   const body = await request.json().catch(() => null);
   if (!body) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
@@ -39,7 +53,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const origin =
+    process.env.APP_URL || request.nextUrl.origin || "http://localhost:3000";
+
   const existing = await prisma.user.findUnique({ where: { email: rawEmail } });
+  if (existing?.status === "pending_verification" && !existing.deletedAt) {
+    // Signing up again before confirming: resend the link (at most 3 an hour).
+    if (rateLimit(`verify-resend:${existing.id}`, 3, 60 * 60 * 1000)) {
+      await sendVerificationEmail(existing, origin);
+    }
+    return verifyPendingResponse(existing.email);
+  }
   if (existing) {
     return NextResponse.json(
       { error: "An account with this email already exists" },
@@ -48,7 +72,8 @@ export async function POST(request: NextRequest) {
   }
 
   const isVanderbiltEmail = rawEmail.endsWith(VANDERBILT_DOMAIN);
-  const status = isVanderbiltEmail ? "active" : "pending_approval";
+  // Vanderbilt addresses skip admin approval but must confirm they own the inbox.
+  const status = isVanderbiltEmail ? "pending_verification" : "pending_approval";
   const passwordHash = await hashPassword(password);
   const name = `${firstName} ${lastName}`;
 
@@ -71,22 +96,6 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Auto-login approved users
-  const token = await signSession({
-    uid: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role as Role,
-  });
-  await setSessionCookie(token);
-
-  return NextResponse.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      department: user.department,
-    },
-  });
+  await sendVerificationEmail(user, origin);
+  return verifyPendingResponse(user.email);
 }

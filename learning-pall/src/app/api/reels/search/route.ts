@@ -28,9 +28,10 @@ export async function GET(request: NextRequest) {
     ],
   };
 
-  if (category) {
-    where.topic = { category };
-  }
+  // Custom (Explore) topics are private to the learner who created them.
+  where.topic = category
+    ? { category, OR: [{ isCustom: false }, { userId: session.uid }] }
+    : { OR: [{ isCustom: false }, { userId: session.uid }] };
 
   const reels = await prisma.learningReel.findMany({
     where,

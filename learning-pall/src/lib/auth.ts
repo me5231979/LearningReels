@@ -1,11 +1,10 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { prisma } from "./db";
+import { getAuthSecret } from "./auth-secret";
 
-const SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || "lr-dev-secret-change-in-production"
-);
 const COOKIE = "lr_session";
 
 export type Role = "learner" | "admin" | "super_admin";
@@ -37,24 +36,69 @@ export async function requireSuperAdmin() {
   return user;
 }
 
+/**
+ * Short fingerprint of the user's current password hash, stored in the JWT.
+ * Changing or resetting the password changes the fingerprint, which revokes
+ * every session issued before the change.
+ */
+function passwordVersion(passwordHash: string): string {
+  return crypto.createHash("sha256").update(passwordHash).digest("hex").slice(0, 16);
+}
+
 export async function signSession(p: SessionPayload) {
-  return await new SignJWT(p as unknown as Record<string, unknown>)
+  const user = await prisma.user.findUnique({
+    where: { id: p.uid },
+    select: { passwordHash: true },
+  });
+  if (!user) throw new Error("Cannot sign a session for a missing user");
+  return await new SignJWT({
+    ...(p as unknown as Record<string, unknown>),
+    pwv: passwordVersion(user.passwordHash),
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
-    .sign(SECRET);
+    .sign(getAuthSecret());
+}
+
+/**
+ * Verifies the JWT, then checks it against the database: the account must
+ * still exist, be active and not deleted, and the password must not have
+ * changed since the token was issued. Role, name and email come from the
+ * database so admin changes take effect immediately.
+ */
+async function verifySessionToken(
+  token: string
+): Promise<(SessionPayload & { iat: number }) | null> {
+  let payload: Record<string, unknown>;
+  try {
+    ({ payload } = await jwtVerify(token, getAuthSecret()));
+  } catch {
+    return null;
+  }
+  if (typeof payload.uid !== "string" || typeof payload.pwv !== "string") return null;
+  const user = await prisma.user.findUnique({
+    where: { id: payload.uid },
+    select: { id: true, email: true, name: true, role: true, status: true, deletedAt: true, passwordHash: true },
+  });
+  if (!user || user.deletedAt || user.status !== "active") return null;
+  if (payload.pwv !== passwordVersion(user.passwordHash)) return null;
+  return {
+    uid: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role as Role,
+    iat: typeof payload.iat === "number" ? payload.iat : 0,
+  };
 }
 
 export async function readSession(): Promise<SessionPayload | null> {
   const c = await cookies();
   const token = c.get(COOKIE)?.value;
   if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, SECRET);
-    return payload as unknown as SessionPayload;
-  } catch {
-    return null;
-  }
+  const s = await verifySessionToken(token);
+  if (!s) return null;
+  return { uid: s.uid, email: s.email, name: s.name, role: s.role };
 }
 
 /**
@@ -67,13 +111,7 @@ export async function readSessionWithIat(): Promise<
   const c = await cookies();
   const token = c.get(COOKIE)?.value;
   if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, SECRET);
-    const iat = typeof payload.iat === "number" ? payload.iat : 0;
-    return { ...(payload as unknown as SessionPayload), iat };
-  } catch {
-    return null;
-  }
+  return verifySessionToken(token);
 }
 
 export async function setSessionCookie(token: string) {

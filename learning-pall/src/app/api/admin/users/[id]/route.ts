@@ -20,6 +20,20 @@ export async function PATCH(
     return NextResponse.json({ error: "Cannot edit super admin" }, { status: 403 });
   }
 
+  // Changing another admin's email would let an admin reset that account's
+  // password and take it over, so only super admins may do it.
+  if (
+    "email" in body &&
+    target.id !== me.id &&
+    target.role === "admin" &&
+    me.role !== "super_admin"
+  ) {
+    return NextResponse.json(
+      { error: "Only a super admin can change another admin's email" },
+      { status: 403 }
+    );
+  }
+
   const allowed: Record<string, unknown> = {};
   for (const key of ["name", "email", "jobTitle", "department"] as const) {
     if (key in body) {

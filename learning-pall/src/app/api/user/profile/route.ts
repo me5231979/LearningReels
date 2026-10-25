@@ -135,9 +135,9 @@ export async function PATCH(request: NextRequest) {
     },
   });
 
-  // If name or email changed, refresh the JWT cookie so the session
-  // payload stays in sync with the new values.
-  if (data.name || data.email) {
+  // If name, email or password changed, refresh the JWT cookie. A password
+  // change revokes all older sessions, so this keeps the current device in.
+  if (data.name || data.email || data.passwordHash) {
     const token = await signSession({
       uid: user.id,
       email: user.email,

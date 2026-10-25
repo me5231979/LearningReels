@@ -41,10 +41,19 @@ export async function POST(request: NextRequest) {
 
   const passwordHash = await hashPassword(body.password);
 
+  // A reset link proves inbox ownership, so it also completes email verification.
+  const owner = await prisma.user.findUnique({
+    where: { id: record.userId },
+    select: { status: true },
+  });
+
   await prisma.$transaction([
     prisma.user.update({
       where: { id: record.userId },
-      data: { passwordHash },
+      data: {
+        passwordHash,
+        ...(owner?.status === "pending_verification" ? { status: "active" } : {}),
+      },
     }),
     prisma.passwordResetToken.update({
       where: { id: record.id },

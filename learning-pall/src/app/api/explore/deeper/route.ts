@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { aiRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { readSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getAnthropicClient } from "@/lib/claude";
@@ -66,6 +67,9 @@ export async function POST(request: NextRequest) {
   const session = await readSession();
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+  if (!aiRateLimit(session.uid, "generate")) {
+    return tooManyRequests();
   }
 
   const { topicId } = await request.json();

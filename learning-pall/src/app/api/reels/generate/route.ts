@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { generateReelsForTopic } from "@/lib/generate-reels";
 import type { BloomsLevel } from "@/types/course";
 
 export async function POST(request: NextRequest) {
-  const session = await readSession();
-  if (!session) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  // Each reel is a paid Claude call; learners get reels through Explore,
+  // so direct generation is admin-only and capped per request.
+  const admin = await requireAdmin();
+  if (!admin) {
+    return NextResponse.json({ error: "Admin only" }, { status: 403 });
   }
 
-  const { topicSlug, bloomLevel, count = 1 } = await request.json();
+  const body = await request.json();
+  const { topicSlug, bloomLevel } = body;
+  const count = Math.min(Math.max(Math.floor(Number(body.count) || 1), 1), 5);
 
   if (!topicSlug || !bloomLevel) {
     return NextResponse.json(

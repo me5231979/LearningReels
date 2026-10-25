@@ -20,7 +20,7 @@ export async function GET() {
   const userDepartment = me?.department ?? null;
 
   const topics = await prisma.topic.findMany({
-    where: { isActive: true },
+    where: { isActive: true, OR: [{ isCustom: false }, { userId: session.uid }] },
     include: {
       reels: {
         where: { status: "published" },

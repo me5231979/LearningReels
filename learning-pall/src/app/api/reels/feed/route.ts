@@ -64,9 +64,13 @@ export async function GET(request: NextRequest) {
 
   // When browsing a specific topic, show ALL its reels (including completed
   // ones) so favorites and revisits work. Otherwise hide completed reels.
+  // Custom (Explore) topics are private to the learner who created them.
+  const visibleTopic = { topic: { OR: [{ isCustom: false }, { userId: session.uid }] } };
+
   const newReels = await prisma.learningReel.findMany({
     where: {
       status: "published",
+      ...visibleTopic,
       ...(category ? {} : { id: { notIn: completedReelIds } }),
       ...topicFilter,
     },
@@ -84,7 +88,7 @@ export async function GET(request: NextRequest) {
   let fallbackReels: typeof newReels = [];
   if (!category && dueReviews.length === 0 && newReels.length === 0) {
     fallbackReels = await prisma.learningReel.findMany({
-      where: { status: "published" },
+      where: { status: "published", ...visibleTopic },
       include: {
         topic: true,
         cards: { orderBy: { order: "asc" } },

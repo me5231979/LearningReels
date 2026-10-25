@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import webPush from "web-push";
 
@@ -14,7 +14,14 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
   );
 }
 
-export async function POST() {
+// Called by a scheduler with `Authorization: Bearer $CRON_SECRET` (Vercel
+// Cron sends this header automatically when CRON_SECRET is set).
+export async function POST(request: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || request.headers.get("authorization") !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
     return NextResponse.json(
       { error: "VAPID keys not configured" },

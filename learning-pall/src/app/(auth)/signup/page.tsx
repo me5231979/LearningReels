@@ -15,6 +15,7 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [pendingTitle, setPendingTitle] = useState("Awaiting approval");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,6 +38,7 @@ export default function SignupPage() {
 
       if (data.pending) {
         setPendingMessage(data.message);
+        if (data.title) setPendingTitle(data.title);
         setLoading(false);
         return;
       }
@@ -59,7 +61,7 @@ export default function SignupPage() {
             className="w-28 mx-auto mb-5"
           />
           <h1 className="font-serif text-2xl font-bold text-white mb-3">
-            Awaiting approval
+            {pendingTitle}
           </h1>
           <p className="text-vand-sand/70 text-sm mb-6">{pendingMessage}</p>
           <Link

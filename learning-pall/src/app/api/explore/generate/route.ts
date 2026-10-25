@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { aiRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { readSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getAnthropicClient } from "@/lib/claude";
@@ -152,8 +153,14 @@ export async function POST(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+  if (!aiRateLimit(session.uid, "generate")) {
+    return tooManyRequests();
+  }
 
-  const { topicLabel, topicDescription } = await request.json();
+  const body = await request.json();
+  const topicLabel = typeof body.topicLabel === "string" ? body.topicLabel.trim().slice(0, 80) : "";
+  const topicDescription =
+    typeof body.topicDescription === "string" ? body.topicDescription.trim().slice(0, 300) : "";
   if (!topicLabel || !topicDescription) {
     return NextResponse.json({ error: "Missing topic data" }, { status: 400 });
   }

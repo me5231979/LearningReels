@@ -105,6 +105,48 @@ If you did not request a password reset, you can safely ignore this email.
   };
 }
 
+export function buildVerifyEmail(opts: {
+  to: string;
+  name: string;
+  verifyUrl: string;
+  expiresInHours: number;
+}): EmailMessage {
+  const { to, name, verifyUrl, expiresInHours } = opts;
+  const text = `Hi ${name},
+
+Welcome to Learning Reels. Confirm your email address to activate your account.
+
+${verifyUrl}
+
+This link expires in ${expiresInHours} hours. If you did not sign up, you can safely ignore this email.
+
+— Vanderbilt Learning Reels`;
+
+  const html = `<!doctype html>
+<html>
+  <body style="font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #1C1C1C; line-height: 1.5;">
+    <p>Hi ${escapeHtml(name)},</p>
+    <p>Welcome to Learning Reels. Confirm your email address to activate your account.</p>
+    <p>
+      <a href="${escapeAttr(verifyUrl)}"
+         style="display:inline-block;padding:12px 20px;background:#866D4B;color:#fff;text-decoration:none;border-radius:4px;font-weight:600;">
+        Confirm your email
+      </a>
+    </p>
+    <p style="color:#555;font-size:14px;">This link expires in ${expiresInHours} hours.</p>
+    <p style="color:#555;font-size:14px;">If you did not sign up, you can safely ignore this email.</p>
+    <p style="color:#888;font-size:12px;">— Vanderbilt Learning Reels</p>
+  </body>
+</html>`;
+
+  return {
+    to,
+    subject: "Confirm your Learning Reels account",
+    text,
+    html,
+  };
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({
     "&": "&amp;",
